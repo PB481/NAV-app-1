@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # --- Configuration (can be made user-configurable in Streamlit) ---
 DEFAULT_FUND_TICKER = "SPY"
 # Default to yesterday's date for robustness, as today's data might not be ready
-DEFAULT_TARGET_DATE = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+DEFAULT_TARGET_DATE = "2025-06-18"
 
 # --- Helper for logging messages to Streamlit ---
 class StreamlitLogger:
