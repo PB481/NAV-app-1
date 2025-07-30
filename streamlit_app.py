@@ -394,83 +394,81 @@ max_row = df['GridRow'].max()
 # Create the periodic table using Streamlit columns and containers
 st.subheader("🧪 The Periodic Table of Asset Types")
 
-# Display assets in a more manageable grid layout
-# Instead of trying to replicate the exact periodic table structure with too many columns,
-# we'll group assets by category and display them in organized sections
-
-# Filter assets based on user selection
-display_assets = df.copy()
-if selected_category != 'All':
-    display_assets = display_assets[display_assets['Category'] == selected_category]
-if search_term:
-    search_mask = (
-        display_assets['Symbol'].str.contains(search_term, case=False, na=False) |
-        display_assets['Name'].str.contains(search_term, case=False, na=False)
-    )
-    display_assets = display_assets[search_mask]
-
-# Group by category for organized display
-categories = display_assets['Category'].unique()
-
-for category in sorted(categories):
-    category_assets = display_assets[display_assets['Category'] == category].sort_values(['GridRow', 'GridCol'])
+# Display assets in periodic table layout similar to workstreams
+# Group assets by row to create proper periodic table structure
+for row in range(1, max_row + 1):
+    row_assets = df[df['GridRow'] == row].sort_values('GridCol')
     
-    if len(category_assets) > 0:
-        st.markdown(f"### {category}")
+    # Apply filters to row assets
+    filtered_row_assets = row_assets.copy()
+    if selected_category != 'All':
+        filtered_row_assets = filtered_row_assets[filtered_row_assets['Category'] == selected_category]
+    if search_term:
+        search_mask = (
+            filtered_row_assets['Symbol'].str.contains(search_term, case=False, na=False) |
+            filtered_row_assets['Name'].str.contains(search_term, case=False, na=False)
+        )
+        filtered_row_assets = filtered_row_assets[search_mask]
+    
+    if len(filtered_row_assets) > 0:
+        # Create columns for this row - use actual max columns but limit to reasonable number
+        actual_cols_in_row = row_assets['GridCol'].max()
+        cols = st.columns(min(actual_cols_in_row, 10))  # Limit to max 10 columns per row
         
-        # Display assets in rows of 6 (manageable column count)
-        assets_list = category_assets.to_dict('records')
-        
-        for i in range(0, len(assets_list), 6):
-            row_assets = assets_list[i:i+6]
-            cols = st.columns(len(row_assets))
+        for _, asset in filtered_row_assets.iterrows():
+            color = get_color_for_value(asset[color_metric], color_metric)
             
-            for idx, asset in enumerate(row_assets):
-                color = get_color_for_value(asset[color_metric], color_metric)
+            # Check if this asset should be highlighted or dimmed based on filters
+            is_filtered_out = (
+                (selected_category != 'All' and asset['Category'] != selected_category) or
+                (search_term and not (
+                    search_term.lower() in asset['Symbol'].lower() or 
+                    search_term.lower() in asset['Name'].lower()
+                ))
+            )
+            
+            # Use the correct column index, but ensure it doesn't exceed available columns
+            col_idx = min(asset['GridCol'] - 1, len(cols) - 1)
+            
+            with cols[col_idx]:
+                # Create the asset element with styling matching workstreams
+                opacity_style = "opacity: 0.3;" if is_filtered_out else "opacity: 1.0;"
                 
-                with cols[idx]:
-                    # Create the asset element with enhanced styling
-                    st.markdown(f"""
-                    <div style="
-                        background-color: {color}; 
-                        padding: 12px; 
-                        border-radius: 8px; 
-                        text-align: center;
-                        border: 2px solid #333;
-                        margin: 3px;
-                        transition: transform 0.2s ease;
-                        height: 100px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    ">
-                        <strong style="font-size: 1.4em; margin-bottom: 4px;">{asset['Symbol']}</strong><br/>
-                        <small style="font-size: 0.7em; line-height: 1.2;">{asset['Name']}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="
+                    background-color: {color}; 
+                    padding: 12px; 
+                    border-radius: 8px; 
+                    text-align: center;
+                    border: 2px solid #333;
+                    margin: 3px;
+                    height: 120px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    {opacity_style}
+                ">
+                    <strong style="font-size: 1.4em; margin-bottom: 4px;">{asset['Symbol']}</strong><br/>
+                    <small style="font-size: 0.6em; line-height: 1.1;">{color_metric}: {asset[color_metric]}/10</small>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Show detailed information in an expander
+                with st.expander(f"📊 {asset['Symbol']} Details"):
+                    st.write(f"**Name:** {asset['Name']}")
+                    st.write(f"**Category:** {asset['Category']}")
+                    st.write(f"**Position:** Row {asset['GridRow']}, Col {asset['GridCol']}")
                     
-                    # Show detailed information in an expander
-                    with st.expander(f"📊 {asset['Symbol']} Details"):
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write(f"**Name:** {asset['Name']}")
-                            st.write(f"**Category:** {asset['Category']}")
-                        with col2:
-                            st.write(f"**Position:** Row {asset['GridRow']}, Col {asset['GridCol']}")
-                        
-                        # Metrics with visual indicators
-                        st.markdown("**Metrics:**")
-                        metrics_col1, metrics_col2 = st.columns(2)
-                        with metrics_col1:
-                            st.metric("Risk", f"{asset['Risk']}/10", help="Market/Credit Risk")
-                            st.metric("Op Cost", f"{asset['OpCost']}/10", help="Operational Cost")
-                        with metrics_col2:
-                            st.metric("Liquidity", f"{asset['Liquidity']}/10", help="Liquidity Level")
-                            st.metric("Op Risk", f"{asset['OpRisk']}/10", help="Operational Risk")
-        
-        st.markdown("---")  # Separator between categories
+                    # Metrics with visual indicators  
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Risk", f"{asset['Risk']}/10", help="Market/Credit Risk")
+                        st.metric("Op Cost", f"{asset['OpCost']}/10", help="Operational Cost")
+                    with col2:
+                        st.metric("Liquidity", f"{asset['Liquidity']}/10", help="Liquidity Level")
+                        st.metric("Op Risk", f"{asset['OpRisk']}/10", help="Operational Risk")
 
 # --- Operational Workstreams Periodic Table ---
 st.markdown("---")
@@ -527,8 +525,9 @@ for row in range(1, max_ws_row + 1):
             col_idx = workstream['col'] - 1
             
             with cols[col_idx]:
-                # Check if there are capital projects for this workstream
-                related_projects = [proj for proj, details in capital_projects.items() 
+                # Check if there are capital projects for this workstream (use session state)
+                current_capital_projects = st.session_state.get('capital_projects', capital_projects)
+                related_projects = [proj for proj, details in current_capital_projects.items() 
                                   if details['value_stream'] == name or details['value_stream'] in name]
                 
                 project_indicator = "🏗️" if related_projects and show_projects else ""
@@ -576,7 +575,7 @@ for row in range(1, max_ws_row + 1):
                     if related_projects:
                         st.write("**Related Capital Projects:**")
                         for proj in related_projects:
-                            proj_details = capital_projects[proj]
+                            proj_details = current_capital_projects[proj]
                             st.write(f"• {proj} ({proj_details['classification']}) - {proj_details['budget']} Budget")
                     
                     # Show identified gaps
@@ -585,26 +584,153 @@ for row in range(1, max_ws_row + 1):
                         for gap in identified_gaps[name]:
                             st.write(f"• {gap}")
 
-# --- Capital Portfolio Analysis ---
+# --- Editable Capital Portfolio ---
 st.markdown("---")
-st.subheader("💰 Capital Portfolio - USD 26M (2025)")
+st.subheader("💰 Editable Capital Portfolio - USD 26M (2025)")
 
-# Project classification analysis
+# Initialize capital projects in session state
+if 'capital_projects' not in st.session_state:
+    st.session_state.capital_projects = capital_projects.copy()
+
+# Project management interface
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.write("**Current Capital Projects:**")
+    
+    # Display editable projects
+    projects_to_remove = []
+    updated_projects = {}
+    
+    for project_name, details in st.session_state.capital_projects.items():
+        with st.expander(f"📝 Edit: {project_name}"):
+            col_edit1, col_edit2, col_remove = st.columns([2, 2, 1])
+            
+            with col_edit1:
+                new_classification = st.selectbox(
+                    "Classification:",
+                    options=['Rock', 'Sand', 'Pebble'],
+                    index=['Rock', 'Sand', 'Pebble'].index(details['classification']),
+                    key=f"class_{project_name}"
+                )
+                
+                new_budget = st.selectbox(
+                    "Budget Level:",
+                    options=['High', 'Medium', 'Low'],
+                    index=['High', 'Medium', 'Low'].index(details['budget']),
+                    key=f"budget_{project_name}"
+                )
+            
+            with col_edit2:
+                # Get unique value streams from workstreams_data
+                value_stream_options = list(workstreams_data.keys()) + ['Multiple', 'FA Workflow', 'ETF Growth']
+                current_vs = details['value_stream']
+                if current_vs not in value_stream_options:
+                    value_stream_options.append(current_vs)
+                
+                new_value_stream = st.selectbox(
+                    "Value Stream:",
+                    options=value_stream_options,
+                    index=value_stream_options.index(current_vs),
+                    key=f"vs_{project_name}"
+                )
+            
+            with col_remove:
+                st.write("")  # Spacer
+                st.write("")  # Spacer
+                if st.button("🗑️ Remove", key=f"remove_proj_{project_name}"):
+                    projects_to_remove.append(project_name)
+            
+            # Update project details
+            updated_projects[project_name] = {
+                'classification': new_classification,
+                'value_stream': new_value_stream,
+                'budget': new_budget
+            }
+    
+    # Remove projects marked for removal
+    for proj in projects_to_remove:
+        if proj in st.session_state.capital_projects:
+            del st.session_state.capital_projects[proj]
+            st.success(f"Removed project: {proj}")
+            st.rerun()
+    
+    # Update all projects
+    st.session_state.capital_projects.update(updated_projects)
+
+with col2:
+    st.write("**Add New Project:**")
+    
+    new_project_name = st.text_input("Project Name:", key="new_proj_name")
+    new_project_class = st.selectbox("Classification:", options=['Rock', 'Sand', 'Pebble'], key="new_proj_class")
+    new_project_vs = st.selectbox("Value Stream:", options=list(workstreams_data.keys()) + ['Multiple', 'FA Workflow', 'ETF Growth'], key="new_proj_vs")
+    new_project_budget = st.selectbox("Budget Level:", options=['High', 'Medium', 'Low'], key="new_proj_budget")
+    
+    if st.button("➕ Add Project") and new_project_name.strip():
+        if new_project_name not in st.session_state.capital_projects:
+            st.session_state.capital_projects[new_project_name] = {
+                'classification': new_project_class,
+                'value_stream': new_project_vs,
+                'budget': new_project_budget
+            }
+            st.success(f"Added project: {new_project_name}")
+            st.rerun()
+        else:
+            st.warning("Project name already exists!")
+    
+    # Project management actions
+    st.markdown("---")
+    st.write("**Portfolio Actions:**")
+    
+    col_reset, col_export = st.columns(2)
+    with col_reset:
+        if st.button("🔄 Reset to Original"):
+            st.session_state.capital_projects = capital_projects.copy()
+            st.success("Portfolio reset!")
+            st.rerun()
+    
+    with col_export:
+        # Export current portfolio
+        current_projects_df = pd.DataFrame([
+            {
+                'Project': proj,
+                'Classification': details['classification'],
+                'Value Stream': details['value_stream'],
+                'Budget': details['budget']
+            }
+            for proj, details in st.session_state.capital_projects.items()
+        ])
+        
+        portfolio_csv = current_projects_df.to_csv(index=False)
+        st.download_button(
+            label="📁 Export Portfolio",
+            data=portfolio_csv,
+            file_name="capital_portfolio.csv",
+            mime="text/csv"
+        )
+
+# Analysis of current portfolio
+st.markdown("---")
+st.write("**Portfolio Analysis:**")
+
 col1, col2 = st.columns(2)
 
 with col1:
     st.write("**Projects by Classification**")
     classification_counts = {}
-    for proj, details in capital_projects.items():
+    for proj, details in st.session_state.capital_projects.items():
         cls = details['classification']
         classification_counts[cls] = classification_counts.get(cls, 0) + 1
     
-    st.bar_chart(pd.Series(classification_counts))
+    if classification_counts:
+        st.bar_chart(pd.Series(classification_counts))
+    else:
+        st.write("No projects to display")
 
 with col2:
     st.write("**Projects by Value Stream**")
     valuestream_counts = {}
-    for proj, details in capital_projects.items():
+    for proj, details in st.session_state.capital_projects.items():
         vs = details['value_stream']
         valuestream_counts[vs] = valuestream_counts.get(vs, 0) + 1
     
@@ -612,18 +738,38 @@ with col2:
     for vs, count in sorted(valuestream_counts.items()):
         st.metric(vs, f"{count} project{'s' if count > 1 else ''}")
 
-# Detailed projects table
-st.write("**Capital Portfolio Projects**")
-projects_df = pd.DataFrame([
+# Current portfolio summary
+st.write("**Current Portfolio Summary:**")
+current_projects_df = pd.DataFrame([
     {
         'Project': proj,
         'Classification': details['classification'],
         'Value Stream': details['value_stream'],
         'Budget': details['budget']
     }
-    for proj, details in capital_projects.items()
+    for proj, details in st.session_state.capital_projects.items()
 ])
-st.dataframe(projects_df, use_container_width=True)
+
+if not current_projects_df.empty:
+    st.dataframe(current_projects_df, use_container_width=True)
+    
+    # Portfolio statistics
+    total_projects = len(current_projects_df)
+    rock_projects = len(current_projects_df[current_projects_df['Classification'] == 'Rock'])
+    sand_projects = len(current_projects_df[current_projects_df['Classification'] == 'Sand'])
+    high_budget_projects = len(current_projects_df[current_projects_df['Budget'] == 'High'])
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Projects", total_projects)
+    with col2:
+        st.metric("Rock Projects", rock_projects)
+    with col3:
+        st.metric("Sand Projects", sand_projects)
+    with col4:
+        st.metric("High Budget Projects", high_budget_projects)
+else:
+    st.info("No projects in portfolio. Add some projects to see analysis.")
 
 # --- Client Change Requests Widget ---
 st.markdown("---")
