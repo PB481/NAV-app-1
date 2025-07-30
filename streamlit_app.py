@@ -39,6 +39,13 @@ try:
 except ImportError:
     NETWORKX_AVAILABLE = False
 
+try:
+    from scipy.optimize import minimize
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    st.warning("SciPy not available - portfolio optimization will be disabled")
+
 # --- Page Configuration ---
 st.set_page_config(
     page_title="Periodic Table of Asset Types",
@@ -305,6 +312,7 @@ client_change_data = {
 
 # --- Helper Functions ---
 
+@st.cache_data
 def get_color_for_value(value, metric):
     """
     Returns a background color based on the score (1-10).
@@ -329,6 +337,418 @@ def get_color_for_value(value, metric):
         blue = 40
         
     return f"rgb({red}, {green}, {blue})"
+
+@st.cache_data
+def create_interactive_periodic_table(df, color_metric, selected_category="All", search_term=""):
+    """
+    Creates an authentic periodic table layout using CSS Grid with hover tooltips
+    """
+    # Filter data
+    filtered_df = df.copy()
+    if selected_category != 'All':
+        filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+    if search_term:
+        search_mask = (
+            filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
+            filtered_df['Name'].str.contains(search_term, case=False, na=False)
+        )
+        filtered_df = filtered_df[search_mask]
+    
+    max_row, max_col = df['GridRow'].max(), df['GridCol'].max()
+    
+    # Create CSS Grid HTML
+    html = f"""
+    <style>
+    .periodic-table-container {{
+        width: 100%;
+        overflow-x: auto;
+        padding: 20px 0;
+    }}
+    
+    .periodic-table {{
+        display: grid;
+        grid-template-columns: repeat({max_col}, minmax(80px, 1fr));
+        grid-template-rows: repeat({max_row}, 100px);
+        gap: 3px;
+        width: 100%;
+        min-width: 1200px;
+        margin: 0 auto;
+    }}
+    
+    .element {{
+        border: 2px solid #333;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        font-family: 'Arial', sans-serif;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }}
+    
+    .element:hover {{
+        transform: scale(1.05);
+        z-index: 100;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        border-color: #fff;
+    }}
+    
+    .element-symbol {{
+        font-size: 1.4em;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        margin-bottom: 2px;
+    }}
+    
+    .element-metric {{
+        font-size: 0.7em;
+        color: #fff;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        background: rgba(0,0,0,0.3);
+        padding: 2px 6px;
+        border-radius: 10px;
+    }}
+    
+    .element-filtered {{
+        opacity: 0.3;
+        filter: grayscale(70%);
+    }}
+    
+    .tooltip {{
+        visibility: hidden;
+        position: absolute;
+        top: -120px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        text-align: left;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 0.8em;
+        white-space: nowrap;
+        z-index: 1000;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        border: 1px solid #555;
+        min-width: 200px;
+    }}
+    
+    .tooltip::after {{
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #333 transparent transparent transparent;
+    }}
+    
+    .element:hover .tooltip {{
+        visibility: visible;
+        opacity: 1;
+    }}
+    
+    .tooltip-row {{
+        display: flex;
+        justify-content: space-between;
+        margin: 2px 0;
+    }}
+    
+    .metric-bar {{
+        display: inline-block;
+        height: 8px;
+        border-radius: 4px;
+        margin-left: 8px;
+    }}
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {{
+        .periodic-table {{
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            min-width: 100%;
+            gap: 2px;
+        }}
+        .element {{
+            font-size: 0.8em;
+        }}
+        .tooltip {{
+            position: fixed;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            max-width: 90vw;
+        }}
+    }}
+    
+    @media (max-width: 480px) {{
+        .periodic-table {{
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+        }}
+        .element-symbol {{
+            font-size: 1.1em;
+        }}
+        .element-metric {{
+            font-size: 0.6em;
+        }}
+    }}
+    </style>
+    
+    <div class="periodic-table-container">
+        <div class="periodic-table">
+    """
+    
+    # Create a grid to track occupied positions
+    occupied_positions = set()
+    for _, asset in df.iterrows():
+        occupied_positions.add((asset['GridRow'], asset['GridCol']))
+    
+    # Add elements to the grid
+    for _, asset in df.iterrows():
+        color = get_color_for_value(asset[color_metric], color_metric)
+        
+        # Check if this asset should be filtered out
+        is_filtered_out = (
+            (selected_category != 'All' and asset['Category'] != selected_category) or
+            (search_term and not (
+                search_term.lower() in asset['Symbol'].lower() or 
+                search_term.lower() in asset['Name'].lower()
+            ))
+        )
+        
+        filtered_class = "element-filtered" if is_filtered_out else ""
+        
+        # Create metric bars for tooltip
+        def create_metric_bar(value, max_val=10):
+            width = int((value / max_val) * 100)
+            if value <= 3:
+                color = "#28a745"  # Green
+            elif value <= 6:
+                color = "#ffc107"  # Yellow
+            else:
+                color = "#dc3545"  # Red
+            return f'<div class="metric-bar" style="width: {width}px; background-color: {color};"></div>'
+        
+        html += f'''
+        <div class="element {filtered_class}" style="
+            grid-row: {asset['GridRow']};
+            grid-column: {asset['GridCol']};
+            background-color: {color};
+        ">
+            <div class="element-symbol">{asset['Symbol']}</div>
+            <div class="element-metric">{color_metric}: {asset[color_metric]}/10</div>
+            
+            <div class="tooltip">
+                <strong>{asset['Name']}</strong><br>
+                <em>{asset['Category']}</em><br><br>
+                <div class="tooltip-row">
+                    <span>🎲 Risk:</span>
+                    <span>{asset['Risk']}/10 {create_metric_bar(asset['Risk'])}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span>💧 Liquidity:</span>
+                    <span>{asset['Liquidity']}/10 {create_metric_bar(asset['Liquidity'])}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span>💰 Op Cost:</span>
+                    <span>{asset['OpCost']}/10 {create_metric_bar(asset['OpCost'])}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span>⚠️ Op Risk:</span>
+                    <span>{asset['OpRisk']}/10 {create_metric_bar(asset['OpRisk'])}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span>📍 Position:</span>
+                    <span>Row {asset['GridRow']}, Col {asset['GridCol']}</span>
+                </div>
+            </div>
+        </div>
+        '''
+    
+    html += """
+        </div>
+    </div>
+    """
+    
+    return html
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_market_data():
+    """
+    Simulated market data loading - replace with real API calls
+    """
+    try:
+        # This would be replaced with actual market data API
+        # import yfinance as yf
+        # tickers = ['SPY', 'GLD', 'TLT', 'DX-Y.NYB', 'CL=F']  # ETF, Gold, Treasury, Dollar Index, Oil
+        # data = yf.download(tickers, period='1d', interval='1m')
+        # return process_yfinance_data(data)
+        
+        # Simulated data for demo with more realistic variation
+        import numpy as np
+        np.random.seed(42)  # For consistent demo data
+        
+        market_data = {
+            'USD': {'price': 1.0, 'change': np.random.normal(0, 0.1)},
+            'EUR': {'price': 1.08, 'change': np.random.normal(0.2, 0.3)},
+            'ETF': {'price': 445.32, 'change': np.random.normal(1.2, 1.5)},
+            'Au': {'price': 2034.50, 'change': np.random.normal(-0.5, 0.8)},
+            'Oil': {'price': 78.45, 'change': np.random.normal(2.1, 2.0)},
+            'UST': {'price': 100.12, 'change': np.random.normal(0.05, 0.2)},
+            'Bund': {'price': 98.45, 'change': np.random.normal(0.08, 0.25)},
+        }
+        return market_data
+    except Exception:
+        return {}
+
+@st.cache_data
+def calculate_portfolio_optimization(portfolio_data, optimization_method="max_sharpe"):
+    """
+    Portfolio optimization using modern portfolio theory
+    """
+    try:
+        if not portfolio_data or len(portfolio_data) < 2 or not SCIPY_AVAILABLE:
+            return None
+            
+        import numpy as np
+        from scipy.optimize import minimize
+        
+        # Create synthetic return data based on asset characteristics
+        assets = []
+        returns = []
+        volatilities = []
+        
+        for asset in portfolio_data:
+            assets.append(asset['Symbol'])
+            # Synthetic expected return based on risk (higher risk = higher expected return)
+            expected_return = 0.02 + (asset['Risk'] / 10) * 0.12  # 2% to 14% range
+            # Volatility based on risk and liquidity
+            volatility = (asset['Risk'] / 10) * 0.3 * (1 - asset['Liquidity'] / 20)  # Up to 30%
+            
+            returns.append(expected_return)
+            volatilities.append(volatility)
+        
+        returns = np.array(returns)
+        volatilities = np.array(volatilities)
+        
+        # Simple correlation matrix (more sophisticated would use historical data)
+        n_assets = len(assets)
+        correlation_matrix = np.eye(n_assets)
+        for i in range(n_assets):
+            for j in range(i+1, n_assets):
+                # Assets in same category have higher correlation
+                if portfolio_data[i]['Category'] == portfolio_data[j]['Category']:
+                    correlation_matrix[i, j] = correlation_matrix[j, i] = 0.7
+                else:
+                    correlation_matrix[i, j] = correlation_matrix[j, i] = 0.3
+        
+        # Covariance matrix
+        cov_matrix = np.outer(volatilities, volatilities) * correlation_matrix
+        
+        def portfolio_stats(weights):
+            portfolio_return = np.sum(returns * weights)
+            portfolio_vol = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
+            sharpe_ratio = portfolio_return / portfolio_vol if portfolio_vol > 0 else 0
+            return portfolio_return, portfolio_vol, sharpe_ratio
+        
+        def objective(weights):
+            _, vol, sharpe = portfolio_stats(weights)
+            if optimization_method == "max_sharpe":
+                return -sharpe  # Negative for maximization
+            elif optimization_method == "min_vol":
+                return vol
+            else:
+                return -sharpe
+        
+        # Constraints and bounds
+        constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
+        bounds = tuple((0.05, 0.5) for _ in range(n_assets))  # 5% to 50% per asset
+        
+        # Initial guess
+        x0 = np.array([1.0 / n_assets] * n_assets)
+        
+        # Optimize
+        result = minimize(objective, x0, method='SLSQP', bounds=bounds, constraints=constraints)
+        
+        if result.success:
+            optimal_weights = result.x
+            opt_return, opt_vol, opt_sharpe = portfolio_stats(optimal_weights)
+            
+            return {
+                'assets': assets,
+                'optimal_weights': optimal_weights,
+                'expected_return': opt_return,
+                'volatility': opt_vol,
+                'sharpe_ratio': opt_sharpe,
+                'optimization_method': optimization_method
+            }
+        else:
+            return None
+            
+    except Exception as e:
+        st.error(f"Portfolio optimization error: {str(e)}")
+        return None
+
+@st.cache_data
+def calculate_efficient_frontier(portfolio_data, n_portfolios=50):
+    """
+    Calculate efficient frontier for portfolio visualization
+    """
+    try:
+        if not portfolio_data or len(portfolio_data) < 2:
+            return None
+            
+        import numpy as np
+        
+        # Use same return/risk logic as optimization function
+        returns = []
+        volatilities = []
+        
+        for asset in portfolio_data:
+            expected_return = 0.02 + (asset['Risk'] / 10) * 0.12
+            volatility = (asset['Risk'] / 10) * 0.3 * (1 - asset['Liquidity'] / 20)
+            returns.append(expected_return)
+            volatilities.append(volatility)
+        
+        returns = np.array(returns)
+        volatilities = np.array(volatilities)
+        
+        # Simple correlation
+        n_assets = len(portfolio_data)
+        correlation_matrix = np.eye(n_assets)
+        for i in range(n_assets):
+            for j in range(i+1, n_assets):
+                if portfolio_data[i]['Category'] == portfolio_data[j]['Category']:
+                    correlation_matrix[i, j] = correlation_matrix[j, i] = 0.7
+                else:
+                    correlation_matrix[i, j] = correlation_matrix[j, i] = 0.3
+        
+        cov_matrix = np.outer(volatilities, volatilities) * correlation_matrix
+        
+        # Generate random portfolios for frontier
+        frontier_data = []
+        for _ in range(n_portfolios):
+            weights = np.random.random(n_assets)
+            weights /= weights.sum()
+            
+            portfolio_return = np.sum(returns * weights)
+            portfolio_vol = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
+            
+            frontier_data.append({
+                'return': portfolio_return,
+                'volatility': portfolio_vol,
+                'sharpe': portfolio_return / portfolio_vol if portfolio_vol > 0 else 0
+            })
+        
+        return frontier_data
+        
+    except Exception:
+        return None
 
 
 # --- App UI ---
@@ -421,99 +841,68 @@ with col3:
     avg_metric_value = filtered_df[color_metric].mean() if len(filtered_df) > 0 else 0
     st.metric(f"Avg {color_metric}", f"{avg_metric_value:.1f}")
 
-# --- Generate the Periodic Table using Native Streamlit Components ---
+# --- Generate the Interactive Periodic Table ---
 
-# Determine the max number of rows and columns needed for the grid
-max_col = df['GridCol'].max()
-max_row = df['GridRow'].max()
-
-# Create the periodic table using Streamlit columns and containers
 st.subheader("🧪 The Periodic Table of Asset Types")
 
-# Display assets in a simplified grid layout to avoid st.columns() issues
-# Group assets by category for reliable display
-display_assets = df.copy()
+# Add market data display
+market_data = load_market_data()
+if market_data:
+    st.info("💹 **Live Market Data** (Simulated): " + 
+            " | ".join([f"{symbol}: ${data['price']:.2f} ({data['change']:+.1f}%)" 
+                      for symbol, data in list(market_data.items())[:5]]))
 
-# Apply filters
-if selected_category != 'All':
-    display_assets = display_assets[display_assets['Category'] == selected_category]
-if search_term:
-    search_mask = (
-        display_assets['Symbol'].str.contains(search_term, case=False, na=False) |
-        display_assets['Name'].str.contains(search_term, case=False, na=False)
-    )
-    display_assets = display_assets[search_mask]
+# Generate and display the interactive periodic table
+periodic_table_html = create_interactive_periodic_table(df, color_metric, selected_category, search_term)
+st.markdown(periodic_table_html, unsafe_allow_html=True)
 
-# Group by category and display in manageable chunks
-categories = sorted(display_assets['Category'].unique())
+# Add legend and instructions
+st.markdown("""
+**💡 How to use:**
+- **Hover** over any element to see detailed metrics and information
+- Use the **sidebar controls** to filter by category or search for specific assets
+- **Color coding** represents the selected metric intensity
+- Elements are positioned according to their risk/liquidity characteristics similar to the chemical periodic table
+""")
 
-for category in categories:
-    category_assets = display_assets[display_assets['Category'] == category].sort_values(['GridRow', 'GridCol'])
+# Category breakdown for filtered results
+if selected_category != 'All' or search_term:
+    st.markdown("---")
+    filtered_df = df.copy()
+    if selected_category != 'All':
+        filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+    if search_term:
+        search_mask = (
+            filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
+            filtered_df['Name'].str.contains(search_term, case=False, na=False)
+        )
+        filtered_df = filtered_df[search_mask]
     
-    if len(category_assets) > 0:
-        st.markdown(f"### {category}")
+    if len(filtered_df) > 0:
+        st.subheader(f"📋 Filtered Results ({len(filtered_df)} assets)")
         
-        # Display assets in rows of 5 (safe column count)
-        assets_list = category_assets.to_dict('records')
-        
-        for i in range(0, len(assets_list), 5):
-            row_assets = assets_list[i:i+5]
-            if len(row_assets) > 0:  # Additional safety check
-                cols = st.columns(len(row_assets))
+        # Create expandable details for filtered assets
+        for _, asset in filtered_df.iterrows():
+            with st.expander(f"📊 {asset['Symbol']} - {asset['Name']} ({asset['Category']})"):
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("🎲 Risk", f"{asset['Risk']}/10")
+                with col2:
+                    st.metric("💧 Liquidity", f"{asset['Liquidity']}/10")
+                with col3:
+                    st.metric("💰 Op Cost", f"{asset['OpCost']}/10")
+                with col4:
+                    st.metric("⚠️ Op Risk", f"{asset['OpRisk']}/10")
                 
-                for idx, asset in enumerate(row_assets):
-                    color = get_color_for_value(asset[color_metric], color_metric)
-                    
-                    # Check if this asset should be highlighted or dimmed based on filters
-                    is_filtered_out = (
-                        (selected_category != 'All' and asset['Category'] != selected_category) or
-                        (search_term and not (
-                            search_term.lower() in asset['Symbol'].lower() or 
-                            search_term.lower() in asset['Name'].lower()
-                        ))
-                    )
-                    
-                    with cols[idx]:
-                        # Create the asset element with styling matching workstreams
-                        opacity_style = "opacity: 0.3;" if is_filtered_out else "opacity: 1.0;"
-                        
-                        st.markdown(f"""
-                        <div style="
-                            background-color: {color}; 
-                            padding: 12px; 
-                            border-radius: 8px; 
-                            text-align: center;
-                            border: 2px solid #333;
-                            margin: 3px;
-                            height: 120px;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: center;
-                            align-items: center;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                            {opacity_style}
-                        ">
-                            <strong style="font-size: 1.4em; margin-bottom: 4px;">{asset['Symbol']}</strong><br/>
-                            <small style="font-size: 0.6em; line-height: 1.1;">{color_metric}: {asset[color_metric]}/10</small>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Show detailed information in an expander
-                        with st.expander(f"📊 {asset['Symbol']} Details"):
-                            st.write(f"**Name:** {asset['Name']}")
-                            st.write(f"**Category:** {asset['Category']}")
-                            st.write(f"**Position:** Row {asset['GridRow']}, Col {asset['GridCol']}")
-                            
-                            # Metrics with visual indicators  
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("Risk", f"{asset['Risk']}/10", help="Market/Credit Risk")
-                                st.metric("Op Cost", f"{asset['OpCost']}/10", help="Operational Cost")
-                            with col2:
-                                st.metric("Liquidity", f"{asset['Liquidity']}/10", help="Liquidity Level")
-                                st.metric("Op Risk", f"{asset['OpRisk']}/10", help="Operational Risk")
-        
-        st.markdown("---")  # Separator between categories
+                st.write(f"**Grid Position:** Row {asset['GridRow']}, Column {asset['GridCol']}")
+                
+                # Add market data if available
+                if asset['Symbol'] in market_data:
+                    data = market_data[asset['Symbol']]
+                    change_color = "🟢" if data['change'] >= 0 else "🔴"
+                    st.write(f"**Current Price:** ${data['price']:.2f} {change_color} {data['change']:+.1f}%")
+    else:
+        st.warning("No assets match your current filter criteria.")
 
 # --- Operational Workstreams Periodic Table ---
 st.markdown("---")
@@ -537,6 +926,7 @@ with col2:
     show_projects = st.checkbox("Show Capital Projects", value=True)
 
 # Helper function for workstream colors
+@st.cache_data
 def get_workstream_color(value, metric):
     val_norm = (value - 1) / 9.0
     if metric == 'automation':
@@ -1691,6 +2081,127 @@ if st.session_state.portfolio and portfolio_data:
             file_name="my_portfolio.csv",
             mime="text/csv"
         )
+    
+    # --- Portfolio Optimization Section ---
+    st.markdown("---")
+    st.subheader("🎯 Portfolio Optimization")
+    
+    if not SCIPY_AVAILABLE:
+        st.warning("⚠️ Portfolio optimization requires SciPy. Install with: `pip install scipy`")
+        st.info("Without optimization, you can still use the portfolio builder and manual rebalancing features.")
+    elif len(portfolio_data) >= 2:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            optimization_method = st.selectbox(
+                "Optimization Method:",
+                options=["max_sharpe", "min_vol"],
+                format_func=lambda x: {
+                    "max_sharpe": "Maximize Sharpe Ratio",
+                    "min_vol": "Minimize Volatility"
+                }[x]
+            )
+            
+            if st.button("🚀 Optimize Portfolio"):
+                with st.spinner("Optimizing portfolio..."):
+                    optimization_result = calculate_portfolio_optimization(portfolio_data, optimization_method)
+                    
+                    if optimization_result:
+                        st.success("Portfolio optimization completed!")
+                        
+                        # Update portfolio weights with optimized values
+                        for i, asset_symbol in enumerate(optimization_result['assets']):
+                            optimal_weight = optimization_result['optimal_weights'][i] * 100
+                            st.session_state.portfolio[asset_symbol] = optimal_weight
+                        
+                        # Display optimization results
+                        st.write("**Optimization Results:**")
+                        col_opt1, col_opt2, col_opt3 = st.columns(3)
+                        with col_opt1:
+                            st.metric("Expected Return", f"{optimization_result['expected_return']:.2%}")
+                        with col_opt2:
+                            st.metric("Volatility", f"{optimization_result['volatility']:.2%}")
+                        with col_opt3:
+                            st.metric("Sharpe Ratio", f"{optimization_result['sharpe_ratio']:.3f}")
+                        
+                        # Show optimal weights
+                        st.write("**Optimal Asset Allocation:**")
+                        opt_weights_df = pd.DataFrame({
+                            'Asset': optimization_result['assets'],
+                            'Optimal Weight (%)': optimization_result['optimal_weights'] * 100
+                        }).sort_values('Optimal Weight (%)', ascending=False)
+                        
+                        st.bar_chart(opt_weights_df.set_index('Asset')['Optimal Weight (%)'])
+                        st.dataframe(opt_weights_df, use_container_width=True)
+                        
+                        st.rerun()
+                    else:
+                        st.error("Portfolio optimization failed. Please check your portfolio composition.")
+        
+        with col2:
+            st.write("**Portfolio Analysis:**")
+            
+            # Current portfolio metrics
+            current_return = sum([(0.02 + (asset['Risk'] / 10) * 0.12) * (asset['Weight'] / 100) 
+                                for asset in portfolio_data])
+            current_vol = (sum([((asset['Risk'] / 10) * 0.3 * (1 - asset['Liquidity'] / 20))**2 * (asset['Weight'] / 100)**2 
+                              for asset in portfolio_data]))**0.5
+            current_sharpe = current_return / current_vol if current_vol > 0 else 0
+            
+            col_curr1, col_curr2 = st.columns(2)
+            with col_curr1:
+                st.metric("Current Return", f"{current_return:.2%}")
+                st.metric("Current Sharpe", f"{current_sharpe:.3f}")
+            with col_curr2:
+                st.metric("Current Volatility", f"{current_vol:.2%}")
+                
+                # Risk-return scatter of current portfolio
+                if PLOTLY_AVAILABLE:
+                    fig_current = px.scatter(
+                        x=[current_vol],
+                        y=[current_return],
+                        title="Current Portfolio Position",
+                        labels={'x': 'Volatility', 'y': 'Expected Return'},
+                        color_discrete_sequence=['red']
+                    )
+                    fig_current.update_traces(marker_size=15)
+                    fig_current.update_layout(height=300)
+                    st.plotly_chart(fig_current, use_container_width=True)
+        
+        # Efficient Frontier Visualization
+        if PLOTLY_AVAILABLE:
+            st.write("**Efficient Frontier Analysis**")
+            
+            frontier_data = calculate_efficient_frontier(portfolio_data)
+            if frontier_data:
+                frontier_df = pd.DataFrame(frontier_data)
+                
+                fig_frontier = px.scatter(
+                    frontier_df,
+                    x='volatility',
+                    y='return',
+                    color='sharpe',
+                    title="Efficient Frontier - Risk vs Return",
+                    labels={'volatility': 'Volatility (Risk)', 'return': 'Expected Return', 'sharpe': 'Sharpe Ratio'},
+                    color_continuous_scale='Viridis'
+                )
+                
+                # Add current portfolio point
+                fig_frontier.add_scatter(
+                    x=[current_vol],
+                    y=[current_return],
+                    mode='markers',
+                    marker=dict(size=15, color='red', symbol='star'),
+                    name='Current Portfolio'
+                )
+                
+                fig_frontier.update_layout(height=500)
+                st.plotly_chart(fig_frontier, use_container_width=True)
+                
+                st.info("🎯 **Interpretation:** Points closer to the upper-left represent better risk-adjusted returns. " +
+                       "Your current portfolio is shown as a red star.")
+    else:
+        st.info("Add at least 2 assets to your portfolio to enable optimization features.")
 
 # --- Workstream Network Analysis ---
 st.markdown("---")
