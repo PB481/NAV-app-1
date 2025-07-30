@@ -311,46 +311,46 @@ if not force_fallback:
         }}
     </style>
     
-    <div class="periodic-table-container">
-    """
-
-    # Loop through the DataFrame and create an HTML element for each asset
-    for _, asset in df.iterrows():
-        color = get_color_for_value(asset[color_metric], color_metric)
-        
-        # Check if this asset should be highlighted or dimmed based on filters
-        is_filtered_out = (
-            (selected_category != 'All' and asset['Category'] != selected_category) or
-            (search_term and not (
-                search_term.lower() in asset['Symbol'].lower() or 
-                search_term.lower() in asset['Name'].lower()
-            ))
-        )
-        
-        css_class = "asset-element dimmed" if is_filtered_out else "asset-element"
-        
-        # Create tooltip content with better formatting
-        tooltip_content = f"""
-        <div class='tooltip-content'>
-            <strong>{asset['Name']}</strong><br/>
-            Category: {asset['Category']}<br/>
-            Risk: {asset['Risk']}/10 | Liquidity: {asset['Liquidity']}/10<br/>
-            Op Cost: {asset['OpCost']}/10 | Op Risk: {asset['OpRisk']}/10
-        </div>
+        <div class="periodic-table-container">
         """
 
-        html_string += f"""
-        <div class="{css_class}" style="grid-column: {asset['GridCol']}; grid-row: {asset['GridRow']}; background-color: {color};">
-            <div class="asset-symbol">{asset['Symbol']}</div>
-            <div class="asset-name">{asset['Name']}</div>
-            {tooltip_content}
-        </div>
-        """
+        # Loop through the DataFrame and create an HTML element for each asset
+        for _, asset in df.iterrows():
+            color = get_color_for_value(asset[color_metric], color_metric)
+            
+            # Check if this asset should be highlighted or dimmed based on filters
+            is_filtered_out = (
+                (selected_category != 'All' and asset['Category'] != selected_category) or
+                (search_term and not (
+                    search_term.lower() in asset['Symbol'].lower() or 
+                    search_term.lower() in asset['Name'].lower()
+                ))
+            )
+        
+            css_class = "asset-element dimmed" if is_filtered_out else "asset-element"
+            
+            # Create tooltip content with better formatting
+            tooltip_content = f"""
+            <div class='tooltip-content'>
+                <strong>{asset['Name']}</strong><br/>
+                Category: {asset['Category']}<br/>
+                Risk: {asset['Risk']}/10 | Liquidity: {asset['Liquidity']}/10<br/>
+                Op Cost: {asset['OpCost']}/10 | Op Risk: {asset['OpRisk']}/10
+            </div>
+            """
 
-    html_string += "</div>"
+            html_string += f"""
+            <div class="{css_class}" style="grid-column: {asset['GridCol']}; grid-row: {asset['GridRow']}; background-color: {color};">
+                <div class="asset-symbol">{asset['Symbol']}</div>
+                <div class="asset-name">{asset['Name']}</div>
+                {tooltip_content}
+            </div>
+            """
 
-    # Render the final HTML in Streamlit
-    st.markdown(html_string, unsafe_allow_html=True)
+        html_string += "</div>"
+
+        # Render the final HTML in Streamlit
+        st.markdown(html_string, unsafe_allow_html=True)
     
     except Exception as e:
         # Fallback: Use Streamlit native components if HTML fails
