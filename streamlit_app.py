@@ -693,7 +693,7 @@ with col2:
     
     col_reset, col_export = st.columns(2)
     with col_reset:
-        if st.button("🔄 Reset to Original"):
+        if st.button("🔄 Reset to Original", key="reset_capital_portfolio"):
             st.session_state.capital_projects = capital_projects.copy()
             st.success("Portfolio reset!")
             st.rerun()
@@ -824,11 +824,11 @@ with col2:
         st.metric(change_type, f"{value:.1f}%")
     
     # Action buttons
-    if st.button("🔄 Reset to Original"):
+    if st.button("🔄 Reset to Original", key="reset_client_changes"):
         st.session_state.client_changes = client_change_data.copy()
         st.rerun()
     
-    if st.button("⚖️ Redistribute Equally"):
+    if st.button("⚖️ Redistribute Equally", key="redistribute_client_changes"):
         equal_value = 100.0 / len(st.session_state.client_changes)
         for change_type in st.session_state.client_changes:
             st.session_state.client_changes[change_type] = equal_value
