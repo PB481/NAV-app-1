@@ -1442,8 +1442,8 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
     st.info("Real operational data from fund administration systems including NAV, holdings, and fund characteristics.")
     
     # Create tabs for operational data analysis
-    op_tab_nav, op_tab_holdings, op_tab_characteristics, op_tab_dashboard = st.tabs([
-        "📈 NAV Performance", "📊 Portfolio Holdings", "🏛️ Fund Characteristics", "📋 Operations Dashboard"
+    op_tab_nav, op_tab_holdings, op_tab_characteristics, op_tab_dashboard, op_tab_workstreams = st.tabs([
+        "📈 NAV Performance", "📊 Portfolio Holdings", "🏛️ Fund Characteristics", "📋 Operations Dashboard", "🔗 Workstream Network"
     ])
     
     with op_tab_nav:
@@ -1678,6 +1678,467 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
                 title="Assets by Safekeeping Location"
             )
             st.plotly_chart(fig_safekeeping, use_container_width=True)
+    
+    with op_tab_workstreams:
+        st.subheader("Operational Workstream Network Analysis")
+        st.info("Network analysis of key fund administration workstreams and their interconnections.")
+        
+        # Define operational workstreams based on the loaded data
+        operational_workstreams = {
+            "Transfer Agent": {
+                "description": "Shareholder record keeping and transaction processing",
+                "complexity": 8,
+                "automation": 6,
+                "risk": 7,
+                "impact": 8,
+                "applications": ["ShareTrak", "InvestorLink", "RegCom"],
+                "dependencies": ["NAV Calculation", "Accounting", "Compliance"],
+                "data_sources": ["fund_characteristics", "nav_data"]
+            },
+            "Custody": {
+                "description": "Asset safekeeping and settlement services",
+                "complexity": 9,
+                "automation": 7,
+                "risk": 9,
+                "impact": 9,
+                "applications": ["CustodyPro", "SettleNet", "AssetGuard"],
+                "dependencies": ["Trading", "Accounting", "Risk Management"],
+                "data_sources": ["custody_holdings"]
+            },
+            "Accounting": {
+                "description": "Financial reporting and book keeping",
+                "complexity": 7,
+                "automation": 8,
+                "risk": 6,
+                "impact": 8,
+                "applications": ["FundBooks", "AcctRec", "FinReport"],
+                "dependencies": ["NAV Calculation", "Custody", "Compliance"],
+                "data_sources": ["nav_data", "custody_holdings", "fund_characteristics"]
+            },
+            "NAV Calculation": {
+                "description": "Daily net asset value computation",
+                "complexity": 9,
+                "automation": 5,
+                "risk": 8,
+                "impact": 10,
+                "applications": ["NAVCalc", "PriceLink", "ValEngine"],
+                "dependencies": ["Pricing", "Custody", "Accounting"],
+                "data_sources": ["nav_data"]
+            },
+            "Compliance": {
+                "description": "Regulatory monitoring and reporting",
+                "complexity": 8,
+                "automation": 4,
+                "risk": 9,
+                "impact": 9,
+                "applications": ["CompliTrack", "RegReport", "MonitorPro"],
+                "dependencies": ["All Workstreams"],
+                "data_sources": ["fund_characteristics"]
+            },
+            "Risk Management": {
+                "description": "Portfolio risk monitoring and analysis",
+                "complexity": 9,
+                "automation": 6,
+                "risk": 8,
+                "impact": 9,
+                "applications": ["RiskAnalyzer", "LimitTrack", "StressTest"],
+                "dependencies": ["Custody", "Pricing", "NAV Calculation"],
+                "data_sources": ["custody_holdings", "nav_data"]
+            }
+        }
+        
+        if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
+            # Create network graph
+            G = nx.Graph()
+            
+            # Add nodes (workstreams)
+            for workstream, data in operational_workstreams.items():
+                G.add_node(workstream, 
+                          complexity=data["complexity"],
+                          automation=data["automation"],
+                          risk=data["risk"],
+                          impact=data["impact"],
+                          type="workstream")
+            
+            # Add application nodes
+            applications = set()
+            for data in operational_workstreams.values():
+                applications.update(data["applications"])
+            
+            for app in applications:
+                G.add_node(app, type="application")
+            
+            # Add edges for dependencies
+            for workstream, data in operational_workstreams.items():
+                # Connect to applications
+                for app in data["applications"]:
+                    G.add_edge(workstream, app, relationship="uses")
+                
+                # Connect to dependencies
+                for dep in data["dependencies"]:
+                    if dep != "All Workstreams" and dep in operational_workstreams:
+                        G.add_edge(workstream, dep, relationship="depends_on")
+            
+            # Create network visualization
+            pos = nx.spring_layout(G, k=3, iterations=50)
+            
+            # Separate workstream and application nodes
+            workstream_nodes = [node for node in G.nodes() if G.nodes[node].get('type') == 'workstream']
+            app_nodes = [node for node in G.nodes() if G.nodes[node].get('type') == 'application']
+            
+            # Create Plotly network graph
+            edge_x = []
+            edge_y = []
+            for edge in G.edges():
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+            
+            edge_trace = go.Scatter(x=edge_x, y=edge_y,
+                                   line=dict(width=0.5, color='#888'),
+                                   hoverinfo='none',
+                                   mode='lines')
+            
+            # Workstream nodes
+            workstream_x = [pos[node][0] for node in workstream_nodes]
+            workstream_y = [pos[node][1] for node in workstream_nodes]
+            workstream_text = [f"{node}<br>Risk: {G.nodes[node]['risk']}<br>Impact: {G.nodes[node]['impact']}" 
+                              for node in workstream_nodes]
+            
+            workstream_trace = go.Scatter(x=workstream_x, y=workstream_y,
+                                         mode='markers+text',
+                                         hoverinfo='text',
+                                         hovertext=workstream_text,
+                                         text=workstream_nodes,
+                                         textposition="middle center",
+                                         marker=dict(size=20,
+                                                   color=[G.nodes[node]['risk'] for node in workstream_nodes],
+                                                   colorscale='Reds',
+                                                   colorbar=dict(title="Risk Level"),
+                                                   line=dict(width=2, color='black')))
+            
+            # Application nodes
+            app_x = [pos[node][0] for node in app_nodes]
+            app_y = [pos[node][1] for node in app_nodes]
+            
+            app_trace = go.Scatter(x=app_x, y=app_y,
+                                  mode='markers+text',
+                                  hoverinfo='text',
+                                  hovertext=app_nodes,
+                                  text=app_nodes,
+                                  textposition="middle center",
+                                  marker=dict(size=12,
+                                            color='lightblue',
+                                            line=dict(width=1, color='black')))
+            
+            fig_network = go.Figure(data=[edge_trace, workstream_trace, app_trace],
+                                   layout=go.Layout(title='Operational Workstream Network',
+                                                   titlefont_size=16,
+                                                   showlegend=False,
+                                                   hovermode='closest',
+                                                   margin=dict(b=20,l=5,r=5,t=40),
+                                                   annotations=[ dict(
+                                                       text="Red intensity indicates risk level. Blue nodes are applications.",
+                                                       showarrow=False,
+                                                       xref="paper", yref="paper",
+                                                       x=0.005, y=-0.002,
+                                                       xanchor="left", yanchor="bottom",
+                                                       font=dict(size=12)
+                                                   )],
+                                                   xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                                                   yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                                                   height=600))
+            
+            st.plotly_chart(fig_network, use_container_width=True)
+            
+            # Workstream metrics analysis
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Workstream Risk-Complexity Matrix**")
+                workstream_df = pd.DataFrame(operational_workstreams).T
+                workstream_df = workstream_df.reset_index()
+                workstream_df['complexity'] = pd.to_numeric(workstream_df['complexity'])
+                workstream_df['risk'] = pd.to_numeric(workstream_df['risk'])
+                workstream_df['impact'] = pd.to_numeric(workstream_df['impact'])
+                workstream_df['automation'] = pd.to_numeric(workstream_df['automation'])
+                
+                fig_risk_complex = px.scatter(
+                    workstream_df,
+                    x='complexity',
+                    y='risk',
+                    size='impact',
+                    color='automation',
+                    hover_name='index',
+                    title="Risk vs Complexity (Size = Impact, Color = Automation)",
+                    labels={'index': 'Workstream', 'complexity': 'Complexity', 'risk': 'Risk Level'}
+                )
+                st.plotly_chart(fig_risk_complex, use_container_width=True)
+            
+            with col2:
+                st.write("**Data Source Dependencies**")
+                # Create data source analysis
+                data_sources = {}
+                for workstream, data in operational_workstreams.items():
+                    for source in data["data_sources"]:
+                        if source not in data_sources:
+                            data_sources[source] = []
+                        data_sources[source].append(workstream)
+                
+                source_counts = pd.DataFrame([(source, len(workstreams)) for source, workstreams in data_sources.items()],
+                                           columns=['Data Source', 'Workstream Count'])
+                
+                fig_sources = px.bar(
+                    source_counts,
+                    x='Data Source',
+                    y='Workstream Count',
+                    title="Data Source Usage Across Workstreams"
+                )
+                st.plotly_chart(fig_sources, use_container_width=True)
+            
+            # Critical path analysis
+            st.write("**Critical Path Analysis**")
+            centrality = nx.betweenness_centrality(G)
+            degree_centrality = nx.degree_centrality(G)
+            
+            centrality_df = pd.DataFrame([
+                {'Node': node, 'Betweenness': centrality[node], 'Degree': degree_centrality[node], 
+                 'Type': G.nodes[node].get('type', 'unknown')}
+                for node in G.nodes()
+            ]).sort_values('Betweenness', ascending=False)
+            
+            st.dataframe(centrality_df, use_container_width=True)
+            
+        else:
+            st.write("**Operational Workstreams Summary**")
+            workstream_summary = pd.DataFrame(operational_workstreams).T[['complexity', 'automation', 'risk', 'impact']]
+            st.dataframe(workstream_summary, use_container_width=True)
+
+# --- 3D Fund Positioning Analysis ---
+if nav_data is not None and fund_characteristics is not None and custody_holdings is not None:
+    st.markdown("---")
+    st.header("🎯 3D Fund Positioning Analysis")
+    st.info("Interactive 3D analysis of fund types with selectable funds and positioning metrics.")
+    
+    # Fund selection interface
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        available_funds = fund_characteristics['fund_id'].unique().tolist()
+        selected_funds = st.multiselect(
+            "Select Funds to Analyze:",
+            options=available_funds,
+            default=available_funds[:3] if len(available_funds) >= 3 else available_funds,
+            key="fund_3d_selection"
+        )
+    
+    with col2:
+        x_metric = st.selectbox(
+            "X-Axis Metric:",
+            options=['aum_current_estimate', 'expense_ratio_pct', 'fund_age_years'],
+            format_func=lambda x: {
+                'aum_current_estimate': 'Current AUM',
+                'expense_ratio_pct': 'Expense Ratio (%)',
+                'fund_age_years': 'Fund Age (Years)'
+            }[x],
+            key="x_axis_3d"
+        )
+    
+    with col3:
+        y_metric = st.selectbox(
+            "Y-Axis Metric:",
+            options=['expense_ratio_pct', 'aum_current_estimate', 'fund_age_years'],
+            format_func=lambda x: {
+                'aum_current_estimate': 'Current AUM',
+                'expense_ratio_pct': 'Expense Ratio (%)',
+                'fund_age_years': 'Fund Age (Years)'
+            }[x],
+            index=1,
+            key="y_axis_3d"
+        )
+    
+    if selected_funds and PLOTLY_AVAILABLE:
+        # Prepare fund data for 3D analysis
+        fund_3d_data = fund_characteristics[fund_characteristics['fund_id'].isin(selected_funds)].copy()
+        
+        # Calculate fund age
+        fund_3d_data['fund_age_years'] = (
+            pd.Timestamp.now() - fund_3d_data['inception_date']
+        ).dt.days / 365.25
+        
+        # Get NAV volatility for Z-axis
+        nav_volatility = nav_data.groupby('fund_id')['nav_per_share'].std().reset_index()
+        nav_volatility.columns = ['fund_id', 'nav_volatility']
+        fund_3d_data = fund_3d_data.merge(nav_volatility, on='fund_id', how='left')
+        
+        # Get average holdings value for size
+        holdings_avg = custody_holdings.groupby('fund_id')['market_value'].mean().reset_index()
+        holdings_avg.columns = ['fund_id', 'avg_holding_value']
+        fund_3d_data = fund_3d_data.merge(holdings_avg, on='fund_id', how='left')
+        
+        # Fill NaN values with defaults
+        fund_3d_data['nav_volatility'] = fund_3d_data['nav_volatility'].fillna(0.1)
+        fund_3d_data['avg_holding_value'] = fund_3d_data['avg_holding_value'].fillna(1000000)
+        
+        # Ensure all numeric columns are properly converted
+        numeric_cols = ['aum_current_estimate', 'expense_ratio_pct', 'fund_age_years', 'nav_volatility', 'avg_holding_value']
+        for col in numeric_cols:
+            if col in fund_3d_data.columns:
+                fund_3d_data[col] = pd.to_numeric(fund_3d_data[col], errors='coerce').fillna(0)
+        
+        # Create tabs for different 3D views
+        tab_3d_main, tab_3d_risk, tab_3d_performance = st.tabs([
+            "📊 Main 3D Analysis", "⚠️ Risk Positioning", "📈 Performance Metrics"
+        ])
+        
+        with tab_3d_main:
+            st.subheader("Interactive 3D Fund Positioning")
+            
+            # Main 3D scatter plot
+            fig_3d_main = px.scatter_3d(
+                fund_3d_data,
+                x=x_metric,
+                y=y_metric,
+                z='nav_volatility',
+                size='avg_holding_value',
+                color='fund_type',
+                hover_name='fund_name',
+                hover_data={
+                    'fund_id': True,
+                    'legal_structure': True,
+                    'base_currency': True,
+                    'is_active': True
+                },
+                title=f"3D Fund Analysis: {x_metric.replace('_', ' ').title()} vs {y_metric.replace('_', ' ').title()} vs NAV Volatility",
+                labels={
+                    x_metric: x_metric.replace('_', ' ').title(),
+                    y_metric: y_metric.replace('_', ' ').title(),
+                    'nav_volatility': 'NAV Volatility',
+                    'avg_holding_value': 'Avg Holding Value'
+                }
+            )
+            fig_3d_main.update_layout(height=600)
+            st.plotly_chart(fig_3d_main, use_container_width=True)
+            
+            # Fund comparison table
+            st.write("**Selected Fund Comparison**")
+            comparison_cols = ['fund_name', 'fund_type', 'legal_structure', 'aum_current_estimate', 
+                             'expense_ratio_pct', 'fund_age_years', 'nav_volatility']
+            comparison_df = fund_3d_data[comparison_cols].round(4)
+            st.dataframe(comparison_df, use_container_width=True)
+        
+        with tab_3d_risk:
+            st.subheader("Risk-Based 3D Positioning")
+            
+            # Risk-focused 3D analysis
+            fig_3d_risk = px.scatter_3d(
+                fund_3d_data,
+                x='expense_ratio_pct',
+                y='nav_volatility',
+                z='aum_current_estimate',
+                size='fund_age_years',
+                color='legal_structure',
+                hover_name='fund_name',
+                title="Risk Profile Analysis: Expense Ratio vs NAV Volatility vs AUM",
+                labels={
+                    'expense_ratio_pct': 'Expense Ratio (%)',
+                    'nav_volatility': 'NAV Volatility',
+                    'aum_current_estimate': 'Current AUM',
+                    'fund_age_years': 'Fund Age (Years)'
+                }
+            )
+            fig_3d_risk.update_layout(height=600)
+            st.plotly_chart(fig_3d_risk, use_container_width=True)
+            
+            # Risk metrics
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Risk Profile Summary**")
+                risk_summary = fund_3d_data.groupby('fund_type').agg({
+                    'nav_volatility': 'mean',
+                    'expense_ratio_pct': 'mean',
+                    'aum_current_estimate': 'mean'
+                }).round(4)
+                st.dataframe(risk_summary, use_container_width=True)
+            
+            with col2:
+                st.write("**Legal Structure Risk Distribution**")
+                fig_structure_risk = px.box(
+                    fund_3d_data,
+                    x='legal_structure',
+                    y='nav_volatility',
+                    title="NAV Volatility by Legal Structure"
+                )
+                st.plotly_chart(fig_structure_risk, use_container_width=True)
+        
+        with tab_3d_performance:
+            st.subheader("Performance Metrics 3D View")
+            
+            # Get NAV performance metrics
+            nav_performance = nav_data.groupby('fund_id').agg({
+                'nav_per_share': ['mean', 'min', 'max']
+            }).round(4)
+            nav_performance.columns = ['avg_nav', 'min_nav', 'max_nav']
+            nav_performance['nav_range'] = nav_performance['max_nav'] - nav_performance['min_nav']
+            nav_performance = nav_performance.reset_index()
+            
+            fund_perf_data = fund_3d_data.merge(nav_performance, on='fund_id', how='left')
+            
+            # Performance 3D scatter
+            fig_3d_perf = px.scatter_3d(
+                fund_perf_data,
+                x='avg_nav',
+                y='nav_range',
+                z='aum_current_estimate',
+                size='expense_ratio_pct',
+                color='base_currency',
+                hover_name='fund_name',
+                title="Performance Analysis: Average NAV vs NAV Range vs AUM",
+                labels={
+                    'avg_nav': 'Average NAV',
+                    'nav_range': 'NAV Range (Max - Min)',
+                    'aum_current_estimate': 'Current AUM',
+                    'expense_ratio_pct': 'Expense Ratio (%)'
+                }
+            )
+            fig_3d_perf.update_layout(height=600)
+            st.plotly_chart(fig_3d_perf, use_container_width=True)
+            
+            # Performance insights
+            st.write("**Performance Insights**")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                best_performer = fund_perf_data.loc[fund_perf_data['avg_nav'].idxmax()]
+                st.metric(
+                    "Highest Avg NAV",
+                    f"{best_performer['fund_name']}",
+                    f"{best_performer['avg_nav']:.2f}"
+                )
+            
+            with col2:
+                most_stable = fund_perf_data.loc[fund_perf_data['nav_volatility'].idxmin()]
+                st.metric(
+                    "Most Stable (Low Volatility)",
+                    f"{most_stable['fund_name']}",
+                    f"{most_stable['nav_volatility']:.4f}"
+                )
+            
+            with col3:
+                largest_fund = fund_perf_data.loc[fund_perf_data['aum_current_estimate'].idxmax()]
+                st.metric(
+                    "Largest AUM",
+                    f"{largest_fund['fund_name']}",
+                    f"${largest_fund['aum_current_estimate']:,.0f}"
+                )
+    
+    elif not selected_funds:
+        st.warning("Please select at least one fund to analyze.")
+    else:
+        st.warning("3D analysis requires Plotly library for interactive visualizations.")
 
 # Asset data table for reference
 st.markdown("---")
@@ -1791,7 +2252,7 @@ for row in range(1, max_ws_row + 1):
                 related_projects = [proj for proj, details in current_capital_projects.items() 
                                   if details['value_stream'] == name or details['value_stream'] in name]
                 
-                project_indicator = "🏗️" if related_projects and show_projects else ""
+                project_indicator = "$" if related_projects and show_projects else ""
                 
                 st.markdown(f"""
                 <div style="
@@ -1845,9 +2306,125 @@ for row in range(1, max_ws_row + 1):
                         for gap in identified_gaps[name]:
                             st.write(f"• {gap}")
 
+# --- Editable Workstreams Management ---
+st.markdown("---")
+st.subheader("✏️ Manage Workstreams - Add/Edit/Delete")
+
+# Initialize workstreams in session state
+if 'workstreams_data' not in st.session_state:
+    st.session_state.workstreams_data = workstreams_data.copy()
+
+# Workstream management interface
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.write("**Add New Workstream**")
+    
+    # Form for adding new workstream
+    with st.form("add_workstream"):
+        new_name = st.text_input("Workstream Name")
+        new_complexity = st.slider("Complexity (1-10)", 1, 10, 5)
+        new_automation = st.slider("Automation Level (1-10)", 1, 10, 5)
+        new_operational_risk = st.slider("Operational Risk (1-10)", 1, 10, 5)
+        new_client_impact = st.slider("Client Impact (1-10)", 1, 10, 5)
+        
+        col_proc, col_app = st.columns(2)
+        with col_proc:
+            new_processes = st.text_area("Processes (one per line)", height=100)
+        with col_app:
+            new_applications = st.text_area("Applications (one per line)", height=100)
+        
+        submit_new = st.form_submit_button("➕ Add Workstream")
+        
+        if submit_new and new_name:
+            if new_name not in st.session_state.workstreams_data:
+                st.session_state.workstreams_data[new_name] = {
+                    "processes": [p.strip() for p in new_processes.split('\n') if p.strip()],
+                    "applications": [a.strip() for a in new_applications.split('\n') if a.strip()],
+                    "complexity": new_complexity,
+                    "operational_risk": new_operational_risk,
+                    "automation": new_automation,
+                    "client_impact": new_client_impact
+                }
+                st.success(f"✅ Added new workstream: {new_name}")
+                st.rerun()
+            else:
+                st.warning("⚠️ Workstream name already exists!")
+
+with col2:
+    st.write("**Delete Workstream**")
+    
+    # Select workstream to delete
+    workstream_to_delete = st.selectbox(
+        "Select workstream to delete:",
+        options=list(st.session_state.workstreams_data.keys()),
+        key="delete_workstream_select"
+    )
+    
+    if st.button("🗑️ Delete Workstream", type="secondary"):
+        if workstream_to_delete:
+            del st.session_state.workstreams_data[workstream_to_delete]
+            st.success(f"🗑️ Deleted workstream: {workstream_to_delete}")
+            st.rerun()
+
+# Edit existing workstream
+st.write("**Edit Existing Workstream**")
+edit_workstream = st.selectbox(
+    "Select workstream to edit:",
+    options=list(st.session_state.workstreams_data.keys()),
+    key="edit_workstream_select"
+)
+
+if edit_workstream:
+    current_data = st.session_state.workstreams_data[edit_workstream]
+    
+    with st.form(f"edit_{edit_workstream}"):
+        st.write(f"**Editing: {edit_workstream}**")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            edit_complexity = st.slider("Complexity", 1, 10, current_data["complexity"], key=f"edit_complex_{edit_workstream}")
+            edit_automation = st.slider("Automation", 1, 10, current_data["automation"], key=f"edit_auto_{edit_workstream}")
+        with col2:
+            edit_operational_risk = st.slider("Operational Risk", 1, 10, current_data["operational_risk"], key=f"edit_risk_{edit_workstream}")
+            edit_client_impact = st.slider("Client Impact", 1, 10, current_data["client_impact"], key=f"edit_impact_{edit_workstream}")
+        
+        col_proc, col_app = st.columns(2)
+        with col_proc:
+            edit_processes = st.text_area(
+                "Processes", 
+                value='\n'.join(current_data["processes"]), 
+                height=100,
+                key=f"edit_proc_{edit_workstream}"
+            )
+        with col_app:
+            edit_applications = st.text_area(
+                "Applications", 
+                value='\n'.join(current_data["applications"]), 
+                height=100,
+                key=f"edit_app_{edit_workstream}"
+            )
+        
+        submit_edit = st.form_submit_button("💾 Update Workstream")
+        
+        if submit_edit:
+            st.session_state.workstreams_data[edit_workstream] = {
+                "processes": [p.strip() for p in edit_processes.split('\n') if p.strip()],
+                "applications": [a.strip() for a in edit_applications.split('\n') if a.strip()],
+                "complexity": edit_complexity,
+                "operational_risk": edit_operational_risk,
+                "automation": edit_automation,
+                "client_impact": edit_client_impact
+            }
+            st.success(f"💾 Updated workstream: {edit_workstream}")
+            st.rerun()
+
+# Update the workstreams_data variable to use session state
+workstreams_data = st.session_state.workstreams_data
+
 # --- Editable Capital Portfolio ---
 st.markdown("---")
-st.subheader("💰 Editable Capital Portfolio - USD 26M (2025)")
+st.subheader("$ Editable Capital Portfolio - USD 26M (2025)")
 
 # Initialize capital projects in session state
 if 'capital_projects' not in st.session_state:
