@@ -1058,14 +1058,97 @@ with tab4:
             for i, (_, asset) in enumerate(safe_assets.iterrows(), 1):
                 st.write(f"{i}. **{asset['Symbol']}** - Risk: {asset['Risk']}/10")
 
-# Add legend and instructions
+# --- Alternative Visualization with Altair ---
+if ALTAIR_AVAILABLE:
+    st.markdown("---")
+    st.subheader("🎨 Alternative Interactive Visualization (Altair)")
+    
+    # Create an interactive scatter plot with selection
+    brush = alt.selection_interval()
+    
+    base = alt.Chart(display_df).add_selection(brush)
+    
+    # Main scatter plot
+    scatter_alt = base.mark_circle(size=200, opacity=0.8).encode(
+        x=alt.X('Risk:Q', scale=alt.Scale(domain=[0, 11]), title='Market Risk Level'),
+        y=alt.Y('Liquidity:Q', scale=alt.Scale(domain=[0, 11]), title='Liquidity Level'), 
+        color=alt.Color(f'{color_metric}:Q', 
+                       scale=alt.Scale(scheme='viridis'),
+                       legend=alt.Legend(title=f"{color_metric} Level")),
+        size=alt.Size('OpCost:Q', scale=alt.Scale(range=[100, 400]), legend=alt.Legend(title="Op Cost")),
+        tooltip=['Symbol:N', 'Name:N', 'Category:N', 'Risk:Q', 'Liquidity:Q', 'OpCost:Q', 'OpRisk:Q'],
+        stroke=alt.value('black'),
+        strokeWidth=alt.value(1)
+    ).properties(
+        title=f"Interactive Asset Risk-Liquidity Analysis (Color={color_metric}, Size=OpCost)",
+        width=700,
+        height=400
+    )
+    
+    # Bar chart showing category distribution of selected points
+    bars = base.mark_bar().encode(
+        x=alt.X('count():Q', title='Number of Assets'),
+        y=alt.Y('Category:N', title='Asset Category'),
+        color=alt.condition(brush, alt.Color('Category:N'), alt.value('lightgray')),
+        tooltip=['Category:N', 'count():Q']
+    ).transform_filter(
+        brush
+    ).properties(
+        title="Selected Assets by Category",
+        width=300,
+        height=400
+    )
+    
+    # Combine charts
+    combined_alt = alt.hconcat(scatter_alt, bars).resolve_legend(
+        color="independent",
+        size="independent"
+    )
+    
+    st.altair_chart(combined_alt, use_container_width=True)
+    st.info("💡 **Interactive Feature**: Select an area in the left chart to filter the category breakdown on the right!")
+
+# Add enhanced legend and instructions
+st.markdown("---")
 st.markdown("""
-**💡 How to use:**
-- **Hover** over any element to see detailed metrics and information
-- Use the **sidebar controls** to filter by category or search for specific assets
-- **Color coding** represents the selected metric intensity
-- Elements are positioned according to their risk/liquidity characteristics similar to the chemical periodic table
+## 📚 **Comprehensive Asset Analysis Guide**
+
+### **💡 How to Navigate:**
+- **🔬 Risk-Liquidity Matrix**: Interactive bubble chart with quadrant analysis
+- **🌡️ Heatmaps**: Correlation analysis and category-wise metric averages  
+- **📈 Interactive Charts**: Multiple chart types including scatter matrix, parallel coordinates, radar charts, and box plots
+- **🎯 Asset Positioning**: 3D visualization and hierarchical category breakdown
+- **🎨 Alternative Visualization**: Altair-powered interactive selection charts
+
+### **🎯 Key Insights:**
+- **Safe Haven Assets** 💚: Low risk, high liquidity (top-left quadrant)
+- **High Risk Liquid** 🟡: Suitable for active trading (top-right quadrant)  
+- **Conservative Illiquid** 🔵: Long-term, stable investments (bottom-left quadrant)
+- **High Risk Illiquid** 🔴: Speculative, alternative investments (bottom-right quadrant)
+
+### **📊 Visual Encoding:**
+- **Bubble Size**: Represents operational cost or risk
+- **Color**: Represents the selected metric intensity
+- **Position**: Risk (X-axis) vs Liquidity (Y-axis)
+- **Hover Details**: Complete asset information and metrics
+
+### **🚀 Advanced Features:**
+- **Real-time Filtering**: Search and category filters update all visualizations
+- **Interactive Selection**: Brush selection in Altair charts
+- **Multi-dimensional Analysis**: 3D plots and parallel coordinates
+- **Smart Recommendations**: Algorithm-based asset scoring and ranking
 """)
+
+# Asset data table for reference
+st.markdown("---")
+st.subheader("📋 Complete Asset Data Reference")
+
+# Enhanced data table with styling
+st.dataframe(
+    display_df.style.background_gradient(subset=['Risk', 'Liquidity', 'OpCost', 'OpRisk'], cmap='RdYlGn_r'),
+    use_container_width=True,
+    height=400
+)
 
 # Category breakdown for filtered results
 if selected_category != 'All' or search_term:
