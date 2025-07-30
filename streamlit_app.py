@@ -96,6 +96,37 @@ asset_data = [
 # Convert the list of dictionaries to a Pandas DataFrame for easier manipulation
 df = pd.DataFrame(asset_data)
 
+# --- Load Real Financial Data ---
+@st.cache_data
+def load_real_financial_data():
+    """Load real financial data from CSV files"""
+    try:
+        # Load assets data
+        assets_df = pd.read_csv('Asset and Fund Types/Can you create a machine readable format of the g... - Assets.csv')
+        
+        # Load funds data  
+        funds_df = pd.read_csv('Asset and Fund Types/Can you create a machine readable format of the g... - Funds.csv')
+        
+        # Clean up column names
+        assets_df.columns = ['GICS_Sector', 'Asset_Class', 'Asset_Type', 'Asset_SubType', 
+                           'Reference_Details', 'Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score']
+        
+        funds_df.columns = ['Regulatory_Framework', 'Fund_Type', 'Legal_Structure', 'Key_Characteristics',
+                          'Sample_Assets', 'Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score']
+        
+        # Remove empty rows
+        assets_df = assets_df.dropna(subset=['Asset_Class'])
+        funds_df = funds_df.dropna(subset=['Fund_Type'])
+        
+        return assets_df, funds_df
+        
+    except Exception as e:
+        st.error(f"Error loading real financial data: {str(e)}")
+        return None, None
+
+# Load real data
+real_assets_df, real_funds_df = load_real_financial_data()
+
 # --- Operational Workstreams Data ---
 # Structure the workstreams data from the file
 workstreams_data = {
@@ -1149,9 +1180,239 @@ st.markdown("""
 - **Smart Recommendations**: Algorithm-based asset scoring and ranking
 """)
 
+# --- Real Financial Data Analysis ---
+if real_assets_df is not None and real_funds_df is not None:
+    st.markdown("---")
+    st.header("🏦 Real Financial Data Analysis")
+    
+    # Create tabs for real data analysis
+    tab_assets, tab_funds, tab_combined = st.tabs(["📊 Asset Classes", "🏛️ Fund Types", "🔗 Combined Analysis"])
+    
+    with tab_assets:
+        st.subheader("Real Asset Classes Analysis")
+        
+        if PLOTLY_AVAILABLE:
+            # Risk vs Liquidity scatter for real assets
+            fig_real_assets = px.scatter(
+                real_assets_df,
+                x='Risk_Score',
+                y='Liquidity_Score',
+                size='Cost_Score', 
+                color='Ops_Risk_Score',
+                hover_name='Asset_Type',
+                hover_data={'Asset_Class': True, 'GICS_Sector': True, 'Reference_Details': True},
+                title="Real Asset Classes: Risk vs Liquidity Profile",
+                labels={
+                    'Risk_Score': 'Risk Level (1-5)',
+                    'Liquidity_Score': 'Liquidity Level (1-5)',
+                    'Ops_Risk_Score': 'Operational Risk',
+                    'Cost_Score': 'Cost Level'
+                },
+                color_continuous_scale='Reds'
+            )
+            
+            fig_real_assets.update_layout(height=600)
+            st.plotly_chart(fig_real_assets, use_container_width=True)
+        
+        # Asset class breakdown
+        st.write("### Asset Class Distribution")
+        asset_class_counts = real_assets_df['Asset_Class'].value_counts()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.bar_chart(asset_class_counts)
+        
+        with col2:
+            if PLOTLY_AVAILABLE:
+                fig_pie = px.pie(
+                    values=asset_class_counts.values,
+                    names=asset_class_counts.index,
+                    title="Asset Classes Distribution"
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
+        
+        # GICS Sector analysis
+        st.write("### GICS Sector Breakdown")
+        gics_sectors = real_assets_df[real_assets_df['GICS_Sector'] != 'N/A']['GICS_Sector'].value_counts()
+        if len(gics_sectors) > 0:
+            st.bar_chart(gics_sectors)
+        else:
+            st.info("Most assets are sector-agnostic (N/A)")
+        
+        # Risk-Return Matrix
+        st.write("### Risk Profile Analysis")
+        risk_analysis = real_assets_df.groupby('Asset_Class')[['Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score']].mean()
+        
+        if SEABORN_AVAILABLE:
+            fig_heatmap, ax = plt.subplots(figsize=(10, 6))
+            sns.heatmap(risk_analysis.T, annot=True, cmap='RdYlBu_r', ax=ax, cbar_kws={"shrink": .8})
+            ax.set_title('Average Risk Metrics by Asset Class')
+            plt.xticks(rotation=45)
+            st.pyplot(fig_heatmap, use_container_width=True)
+        
+        # Detailed asset table
+        st.write("### Detailed Asset Information")
+        st.dataframe(
+            real_assets_df.style.background_gradient(
+                subset=['Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score'], 
+                cmap='RdYlGn_r'
+            ),
+            use_container_width=True,
+            height=500
+        )
+    
+    with tab_funds:
+        st.subheader("Fund Types Analysis")
+        
+        if PLOTLY_AVAILABLE:
+            # Fund risk analysis
+            fig_funds = px.scatter(
+                real_funds_df,
+                x='Risk_Score',
+                y='Liquidity_Score',
+                size='Cost_Score',
+                color='Regulatory_Framework',
+                hover_name='Fund_Type',
+                hover_data={'Legal_Structure': True, 'Key_Characteristics': True},
+                title="Fund Types: Risk vs Liquidity Profile",
+                labels={
+                    'Risk_Score': 'Risk Level (1-5)',
+                    'Liquidity_Score': 'Liquidity Level (1-5)',
+                    'Cost_Score': 'Cost Level'
+                }
+            )
+            
+            fig_funds.update_layout(height=600)
+            st.plotly_chart(fig_funds, use_container_width=True)
+        
+        # Regulatory framework analysis
+        st.write("### Regulatory Framework Distribution")
+        regulatory_counts = real_funds_df['Regulatory_Framework'].value_counts()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.bar_chart(regulatory_counts)
+            
+            # Show framework details
+            st.write("**Framework Characteristics:**")
+            for framework in regulatory_counts.index:
+                fund_count = regulatory_counts[framework]
+                st.write(f"• **{framework}**: {fund_count} fund types")
+        
+        with col2:
+            if PLOTLY_AVAILABLE:
+                fig_reg_pie = px.pie(
+                    values=regulatory_counts.values,
+                    names=regulatory_counts.index,
+                    title="Regulatory Framework Distribution"
+                )
+                st.plotly_chart(fig_reg_pie, use_container_width=True)
+        
+        # Fund complexity analysis
+        st.write("### Fund Complexity Matrix")
+        fund_metrics = real_funds_df.groupby('Regulatory_Framework')[['Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score']].mean()
+        
+        if SEABORN_AVAILABLE:
+            fig_fund_heat, ax = plt.subplots(figsize=(8, 4))
+            sns.heatmap(fund_metrics.T, annot=True, cmap='RdYlBu_r', ax=ax, cbar_kws={"shrink": .8})
+            ax.set_title('Average Metrics by Regulatory Framework')
+            st.pyplot(fig_fund_heat, use_container_width=True)
+        
+        # Detailed fund table
+        st.write("### Detailed Fund Information")
+        st.dataframe(
+            real_funds_df.style.background_gradient(
+                subset=['Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score'],
+                cmap='RdYlGn_r'
+            ),
+            use_container_width=True,
+            height=500
+        )
+    
+    with tab_combined:
+        st.subheader("Combined Assets & Funds Analysis")
+        
+        # Create combined dataset for analysis
+        assets_combined = real_assets_df[['Asset_Type', 'Asset_Class', 'Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score']].copy()
+        assets_combined['Type'] = 'Asset'
+        assets_combined['Category'] = assets_combined['Asset_Class']
+        assets_combined['Name'] = assets_combined['Asset_Type']
+        
+        funds_combined = real_funds_df[['Fund_Type', 'Regulatory_Framework', 'Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score']].copy()
+        funds_combined['Type'] = 'Fund'
+        funds_combined['Category'] = funds_combined['Regulatory_Framework']
+        funds_combined['Name'] = funds_combined['Fund_Type']
+        
+        # Combine datasets
+        combined_df = pd.concat([
+            assets_combined[['Name', 'Category', 'Type', 'Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score']],
+            funds_combined[['Name', 'Category', 'Type', 'Risk_Score', 'Liquidity_Score', 'Ops_Risk_Score', 'Cost_Score']]
+        ], ignore_index=True)
+        
+        if PLOTLY_AVAILABLE:
+            # Combined risk-liquidity analysis
+            fig_combined = px.scatter(
+                combined_df,
+                x='Risk_Score',
+                y='Liquidity_Score',
+                size='Cost_Score',
+                color='Type',
+                hover_name='Name',
+                hover_data={'Category': True, 'Ops_Risk_Score': True},
+                title="Complete Financial Universe: Assets vs Funds",
+                labels={
+                    'Risk_Score': 'Risk Level (1-5)',
+                    'Liquidity_Score': 'Liquidity Level (1-5)',
+                    'Cost_Score': 'Cost Level'
+                }
+            )
+            
+            fig_combined.update_layout(height=600)
+            st.plotly_chart(fig_combined, use_container_width=True)
+        
+        # Summary statistics
+        st.write("### Comparative Analysis")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.write("**Asset Summary:**")
+            st.metric("Total Asset Types", len(real_assets_df))
+            st.metric("Avg Risk Score", f"{real_assets_df['Risk_Score'].mean():.2f}")
+            st.metric("Avg Liquidity", f"{real_assets_df['Liquidity_Score'].mean():.2f}")
+        
+        with col2:
+            st.write("**Fund Summary:**")
+            st.metric("Total Fund Types", len(real_funds_df))
+            st.metric("Avg Risk Score", f"{real_funds_df['Risk_Score'].mean():.2f}")
+            st.metric("Avg Liquidity", f"{real_funds_df['Liquidity_Score'].mean():.2f}")
+        
+        with col3:
+            st.write("**Combined Insights:**")
+            high_risk_assets = len(combined_df[combined_df['Risk_Score'] >= 4])
+            high_liquidity_assets = len(combined_df[combined_df['Liquidity_Score'] <= 2])  # Lower score = higher liquidity
+            
+            st.metric("High Risk Items", high_risk_assets)
+            st.metric("High Liquidity Items", high_liquidity_assets)
+        
+        # Risk distribution comparison
+        st.write("### Risk Distribution Comparison")
+        
+        if PLOTLY_AVAILABLE:
+            fig_risk_dist = px.histogram(
+                combined_df,
+                x='Risk_Score',
+                color='Type',
+                title="Risk Score Distribution: Assets vs Funds",
+                nbins=5,
+                barmode='group'
+            )
+            st.plotly_chart(fig_risk_dist, use_container_width=True)
+
 # Asset data table for reference
 st.markdown("---")
-st.subheader("📋 Complete Asset Data Reference")
+st.subheader("📋 Synthetic Asset Data Reference")
+st.info("This is the original synthetic periodic table data used for the main visualizations above.")
 
 # Enhanced data table with styling
 st.dataframe(

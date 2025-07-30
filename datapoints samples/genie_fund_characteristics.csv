@@ -1,0 +1,6 @@
+fund_id,fund_name,fund_isin,fund_type,legal_structure,inception_date,base_currency,management_company_name,management_company_lei,expense_ratio_pct,target_aum_min,target_aum_max,is_active,aum_current_estimate,is_open_ended
+FUND001,Emerging Markets Growth FUND001,LU842PLP6C33,Traditional UCITS,Unit Trust,2020-03-26,JPY,Acme Asset Mgmt,LEIMDAWYUAN2A2ILFKC00,0.005,500000000,2000000000,true,1855507917.52,true
+FUND002,Emerging Markets Growth FUND002,LUIXNH1MPTG4,Traditional UCITS,UCITS,2016-09-30,USD,Acme Asset Mgmt,LEIMDAWYUAN2A2ILFKC00,0.005,500000000,2000000000,true,1489312195.84,true
+FUND003,Euro Fixed Income FUND003,GGF9N1ZOA2E8,Private Equity,UCITS,2017-08-17,CAD,Pinnacle Investments,LEIUOC98JVT7S2HU1SI11,0.02,100000000,1000000000,false,1045922310.85,true
+FUND004,Euro Fixed Income FUND004,LUUML7HYXNZ9,Traditional UCITS,AIF,2015-10-21,JPY,Pinnacle Investments,LEIUOC98JVT7S2HU1SI11,0.005,500000000,2000000000,true,621297045.54,true
+FUND005,Global Equity Alpha FUND005,LUA39U79BNX7,Traditional UCITS,Unit Trust,2021-04-06,USD,Acme Asset Mgmt,LEIMDAWYUAN2A2ILFKC00,0.005,500000000,2000000000,true,2062474885.11,true

@@ -6,6 +6,13 @@ A comprehensive financial data visualization platform that transforms asset anal
 
 ## 🚀 Features
 
+### **Real Financial Data Analysis** 🆕
+- **23 Real Asset Classes**: Professional analysis of actual financial instruments
+- **10 Fund Types**: Regulatory framework and structure analysis (UCITS, AIFMD, ELTIF 2.0)
+- **Combined Universe**: Integrated view of assets and fund vehicles
+- **GICS Sector Analysis**: Industry-specific risk profiling
+- **Regulatory Comparison**: Framework-based cost and complexity analysis
+
 ### **Interactive Asset Analysis Dashboard**
 - **Risk-Liquidity Matrix**: Quadrant analysis with interactive bubble charts
 - **Correlation Heatmaps**: Statistical analysis of asset metrics relationships
@@ -427,9 +434,19 @@ pip install plotly altair seaborn matplotlib scipy networkx yfinance
 
 ## 📊 Data Sources
 
-### **Asset Data**
-- **24 Financial Assets** across 10 categories
-- **Synthetic Metrics** based on real-world asset characteristics
+### **Real Financial Data** 🆕
+- **23 Real Asset Classes** from comprehensive CSV dataset
+  - GICS Sectors: Energy, Materials, Industrials, Info Tech, Financials, Real Estate
+  - Asset Classes: Cash & Equivalents, Fixed Income, Equities, Derivatives, Private Credit, Private Equity, Real Estate, Infrastructure, Commodities, Digital Assets, Carbon Credits, Litigation Finance
+  - Professional risk scoring (1-5 scale): Risk, Liquidity, Ops Risk, Cost
+- **10 Real Fund Types** with regulatory analysis
+  - Frameworks: UCITS, AIFMD, ELTIF 2.0
+  - Structures: Irish ICAV, Lux SICAV, SCSp/SCS, ILP, QIAIF, SIF, RAIF
+  - Fund strategies: ETFs, Money Market, Multi-Asset, Hedge Funds, Private Equity, Real Estate, Infrastructure
+
+### **Synthetic Asset Data**  
+- **24 Financial Assets** across 10 categories for periodic table visualization
+- **Synthetic Metrics** based on real-world asset characteristics (1-10 scale)
 - **Grid Positioning** designed for periodic table layout
 - **Market Data Structure** prepared for live API integration
 
