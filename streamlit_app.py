@@ -2,6 +2,13 @@ import streamlit as st
 import pandas as pd
 import math
 import json
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import altair as alt
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -780,6 +787,205 @@ if not current_projects_df.empty:
 else:
     st.info("No projects in portfolio. Add some projects to see analysis.")
 
+# --- Advanced Workstream Analytics ---
+st.markdown("---")
+st.subheader("🔬 Advanced Workstream Analytics")
+
+# Create workstream analysis dataframe
+workstream_df = pd.DataFrame([
+    {
+        'Workstream': name,
+        'Complexity': data['complexity'],
+        'Operational_Risk': data['operational_risk'],
+        'Automation': data['automation'],
+        'Client_Impact': data['client_impact'],
+        'Process_Count': len(data['processes']),
+        'Application_Count': len(data['applications']),
+        'Gap_Count': len(identified_gaps.get(name, [])),
+        'Project_Count': len([p for p, details in st.session_state.get('capital_projects', capital_projects).items() 
+                             if details['value_stream'] == name])
+    }
+    for name, data in workstreams_data.items()
+])
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.write("**Workstream Complexity vs Automation Analysis**")
+    
+    # Create bubble chart with Plotly
+    fig_bubble = px.scatter(
+        workstream_df,
+        x='Complexity',
+        y='Automation',
+        size='Process_Count',
+        color='Gap_Count',
+        hover_name='Workstream',
+        hover_data={'Operational_Risk': True, 'Client_Impact': True, 'Project_Count': True},
+        title="Workstream Complexity vs Automation Level",
+        labels={
+            'Complexity': 'Process Complexity (1-10)',
+            'Automation': 'Automation Level (1-10)',
+            'Gap_Count': 'Number of Gaps'
+        },
+        color_continuous_scale='Reds'
+    )
+    
+    # Add quadrant lines
+    fig_bubble.add_hline(y=6.5, line_dash="dash", line_color="gray", opacity=0.5)
+    fig_bubble.add_vline(x=6.5, line_dash="dash", line_color="gray", opacity=0.5)
+    
+    # Add quadrant annotations
+    fig_bubble.add_annotation(x=3, y=8.5, text="Simple & Automated<br>(Low Complexity, High Automation)", 
+                             showarrow=False, font=dict(size=9), bgcolor="lightgreen", opacity=0.7)
+    fig_bubble.add_annotation(x=8.5, y=8.5, text="Complex & Automated<br>(High Complexity, High Automation)", 
+                             showarrow=False, font=dict(size=9), bgcolor="yellow", opacity=0.7)
+    fig_bubble.add_annotation(x=3, y=3, text="Simple & Manual<br>(Low Complexity, Low Automation)", 
+                             showarrow=False, font=dict(size=9), bgcolor="lightblue", opacity=0.7)
+    fig_bubble.add_annotation(x=8.5, y=3, text="Complex & Manual<br>(High Complexity, Low Automation)", 
+                             showarrow=False, font=dict(size=9), bgcolor="lightcoral", opacity=0.7)
+    
+    fig_bubble.update_layout(height=500)
+    st.plotly_chart(fig_bubble, use_container_width=True)
+
+with col2:
+    st.write("**Workstream Risk-Impact Matrix**")
+    
+    # Create risk-impact heatmap
+    fig_risk, ax = plt.subplots(figsize=(10, 8))
+    
+    # Create pivot table for heatmap
+    risk_impact_data = workstream_df.pivot_table(
+        values='Gap_Count', 
+        index='Operational_Risk', 
+        columns='Client_Impact', 
+        aggfunc='mean',
+        fill_value=0
+    )
+    
+    sns.heatmap(risk_impact_data, annot=True, cmap='YlOrRd', ax=ax, 
+                cbar_kws={"shrink": .8}, fmt='.1f')
+    ax.set_title('Risk-Impact Heatmap (Average Gap Count)')
+    ax.set_xlabel('Client Impact Level')
+    ax.set_ylabel('Operational Risk Level')
+    
+    st.pyplot(fig_risk, use_container_width=True)
+
+# Workstream Performance Radar Chart
+st.write("**Workstream Performance Comparison (Radar Chart)**")
+
+# Select workstreams to compare
+selected_workstreams = st.multiselect(
+    "Select Workstreams to Compare:",
+    options=workstream_df['Workstream'].tolist(),
+    default=workstream_df['Workstream'].tolist()[:3],
+    key="workstream_comparison"
+)
+
+if selected_workstreams:
+    # Create radar chart data
+    metrics = ['Complexity', 'Operational_Risk', 'Automation', 'Client_Impact']
+    
+    fig_radar = go.Figure()
+    
+    for workstream in selected_workstreams:
+        ws_data = workstream_df[workstream_df['Workstream'] == workstream].iloc[0]
+        values = [ws_data[metric] for metric in metrics]
+        values.append(values[0])  # Close the radar chart
+        
+        fig_radar.add_trace(go.Scatterpolar(
+            r=values,
+            theta=metrics + [metrics[0]],
+            fill='toself',
+            name=workstream,
+            line=dict(width=2),
+            opacity=0.7
+        ))
+    
+    fig_radar.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 10]
+            )),
+        showlegend=True,
+        title="Workstream Performance Comparison",
+        height=500
+    )
+    
+    st.plotly_chart(fig_radar, use_container_width=True)
+
+# Capital Portfolio vs Workstream Analysis
+st.write("**Capital Investment vs Gap Analysis**")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    # Treemap of gaps by workstream
+    gap_data = []
+    for workstream, gaps in identified_gaps.items():
+        if len(gaps) > 0:
+            gap_data.append({
+                'Workstream': workstream,
+                'Gap_Count': len(gaps),
+                'Complexity': workstreams_data[workstream]['complexity']
+            })
+    
+    if gap_data:
+        gap_df = pd.DataFrame(gap_data)
+        
+        fig_gap_tree = px.treemap(
+            gap_df,
+            path=['Workstream'],
+            values='Gap_Count',
+            color='Complexity',
+            color_continuous_scale='Reds',
+            title="Identified Gaps by Workstream"
+        )
+        
+        fig_gap_tree.update_layout(height=400)
+        st.plotly_chart(fig_gap_tree, use_container_width=True)
+
+with col2:
+    # Investment allocation vs complexity
+    investment_data = []
+    for proj, details in st.session_state.get('capital_projects', capital_projects).items():
+        vs = details['value_stream']
+        if vs in workstreams_data:
+            investment_data.append({
+                'Project': proj,
+                'Workstream': vs,
+                'Budget': details['budget'],
+                'Classification': details['classification'],
+                'Complexity': workstreams_data[vs]['complexity'],
+                'Gap_Count': len(identified_gaps.get(vs, []))
+            })
+    
+    if investment_data:
+        invest_df = pd.DataFrame(investment_data)
+        
+        # Map budget levels to numeric values
+        budget_map = {'High': 3, 'Medium': 2, 'Low': 1}
+        invest_df['Budget_Numeric'] = invest_df['Budget'].map(budget_map)
+        
+        fig_invest = px.scatter(
+            invest_df,
+            x='Complexity',
+            y='Gap_Count',
+            size='Budget_Numeric',
+            color='Classification',
+            hover_name='Project',
+            hover_data={'Workstream': True, 'Budget': True},
+            title="Capital Investment vs Workstream Complexity & Gaps",
+            labels={
+                'Complexity': 'Workstream Complexity',
+                'Gap_Count': 'Number of Identified Gaps'
+            }
+        )
+        
+        fig_invest.update_layout(height=400)
+        st.plotly_chart(fig_invest, use_container_width=True)
+
 # --- Client Change Requests Widget ---
 st.markdown("---")
 st.subheader("📋 Client Change Request Distribution")
@@ -1132,17 +1338,150 @@ if st.session_state.portfolio and portfolio_data:
     # Create portfolio DataFrame
     portfolio_df = pd.DataFrame(portfolio_data)
     
-    # Portfolio composition chart
+    # Advanced Portfolio Visualizations
+    st.subheader("📊 Advanced Portfolio Analytics")
+    
+    # Risk-Return Scatter Plot with Plotly
     col1, col2 = st.columns(2)
     
     with col1:
-        st.write("**Portfolio Composition by Weight**")
-        st.bar_chart(portfolio_df.set_index('Symbol')['Weight'])
+        st.write("**Risk vs Liquidity Analysis (Interactive)**")
+        
+        # Create interactive scatter plot
+        fig = px.scatter(
+            portfolio_df, 
+            x='Risk', 
+            y='Liquidity',
+            size='Weight',
+            color='Category',
+            hover_name='Symbol',
+            hover_data={'Name': True, 'Weight': ':.1f%'},
+            title="Portfolio Risk-Liquidity Profile",
+            labels={'Risk': 'Risk Level (1-10)', 'Liquidity': 'Liquidity Level (1-10)'}
+        )
+        
+        fig.update_layout(
+            height=400,
+            showlegend=True,
+            legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02)
+        )
+        
+        # Add quadrant lines
+        fig.add_hline(y=5.5, line_dash="dash", line_color="gray", opacity=0.5)
+        fig.add_vline(x=5.5, line_dash="dash", line_color="gray", opacity=0.5)
+        
+        # Add quadrant annotations
+        fig.add_annotation(x=2.5, y=8.5, text="Safe Haven<br>(Low Risk, High Liquidity)", 
+                          showarrow=False, font=dict(size=10), bgcolor="lightgreen", opacity=0.7)
+        fig.add_annotation(x=8.5, y=8.5, text="High Risk Liquid<br>(High Risk, High Liquidity)", 
+                          showarrow=False, font=dict(size=10), bgcolor="yellow", opacity=0.7)
+        fig.add_annotation(x=2.5, y=2.5, text="Conservative Illiquid<br>(Low Risk, Low Liquidity)", 
+                          showarrow=False, font=dict(size=10), bgcolor="lightblue", opacity=0.7)
+        fig.add_annotation(x=8.5, y=2.5, text="High Risk Illiquid<br>(High Risk, Low Liquidity)", 
+                          showarrow=False, font=dict(size=10), bgcolor="lightcoral", opacity=0.7)
+        
+        st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.write("**Category Breakdown**")
-        category_weights = portfolio_df.groupby('Category')['Weight'].sum()
-        st.bar_chart(category_weights)
+        st.write("**Operational Cost vs Risk Heatmap**")
+        
+        # Create correlation matrix for operational metrics
+        metrics_df = portfolio_df[['Symbol', 'Risk', 'Liquidity', 'OpCost', 'OpRisk', 'Weight']].set_index('Symbol')
+        
+        # Create heatmap with Seaborn
+        fig_heat, ax = plt.subplots(figsize=(8, 6))
+        correlation_matrix = metrics_df[['Risk', 'Liquidity', 'OpCost', 'OpRisk']].corr()
+        
+        sns.heatmap(correlation_matrix, annot=True, cmap='RdYlBu_r', center=0, 
+                   square=True, ax=ax, cbar_kws={"shrink": .8})
+        ax.set_title('Portfolio Metrics Correlation Matrix')
+        
+        st.pyplot(fig_heat, use_container_width=True)
+    
+    # Portfolio Composition Treemap
+    st.write("**Portfolio Allocation Treemap (Interactive)**")
+    
+    # Create treemap with plotly
+    fig_tree = px.treemap(
+        portfolio_df, 
+        path=['Category', 'Symbol'], 
+        values='Weight',
+        color='Risk',
+        color_continuous_scale='RdYlBu_r',
+        title="Portfolio Allocation by Category and Risk Level",
+        hover_data={'Name': True, 'Liquidity': True, 'OpCost': True}
+    )
+    
+    fig_tree.update_layout(height=500)
+    st.plotly_chart(fig_tree, use_container_width=True)
+    
+    # Advanced Metrics Dashboard
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Portfolio Efficiency Frontier**")
+        
+        # Generate efficient frontier simulation
+        n_portfolios = 50
+        risk_range = np.linspace(portfolio_df['Risk'].min(), portfolio_df['Risk'].max(), n_portfolios)
+        
+        # Simulate portfolio combinations
+        efficient_frontier = []
+        for target_risk in risk_range:
+            # Simple optimization: weight inversely to distance from target risk
+            weights = 1 / (np.abs(portfolio_df['Risk'] - target_risk) + 0.1)
+            weights = weights / weights.sum() * 100
+            
+            portfolio_liquidity = np.average(portfolio_df['Liquidity'], weights=weights/100)
+            portfolio_opcost = np.average(portfolio_df['OpCost'], weights=weights/100)
+            
+            efficient_frontier.append({
+                'Risk': target_risk,
+                'Liquidity': portfolio_liquidity,
+                'OpCost': portfolio_opcost
+            })
+        
+        frontier_df = pd.DataFrame(efficient_frontier)
+        
+        fig_frontier = px.line(
+            frontier_df, 
+            x='Risk', 
+            y='Liquidity',
+            title="Efficient Frontier: Risk vs Liquidity",
+            labels={'Risk': 'Portfolio Risk', 'Liquidity': 'Portfolio Liquidity'}
+        )
+        
+        # Add current portfolio point
+        current_risk = np.average(portfolio_df['Risk'], weights=portfolio_df['Weight']/100)
+        current_liquidity = np.average(portfolio_df['Liquidity'], weights=portfolio_df['Weight']/100)
+        
+        fig_frontier.add_scatter(
+            x=[current_risk], 
+            y=[current_liquidity], 
+            mode='markers',
+            marker=dict(size=15, color='red', symbol='star'),
+            name='Current Portfolio'
+        )
+        
+        st.plotly_chart(fig_frontier, use_container_width=True)
+    
+    with col2:
+        st.write("**Asset Distribution by Category (Donut Chart)**")
+        
+        category_weights = portfolio_df.groupby('Category')['Weight'].sum().reset_index()
+        
+        fig_donut = px.pie(
+            category_weights, 
+            values='Weight', 
+            names='Category',
+            title="Portfolio Distribution by Asset Category",
+            hole=0.4
+        )
+        
+        fig_donut.update_traces(textposition='inside', textinfo='percent+label')
+        fig_donut.update_layout(height=400, showlegend=True)
+        
+        st.plotly_chart(fig_donut, use_container_width=True)
     
     # Detailed portfolio table
     st.write("**Detailed Portfolio Holdings**")
