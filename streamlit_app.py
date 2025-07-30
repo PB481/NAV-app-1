@@ -9,6 +9,15 @@ st.set_page_config(
     layout="wide", # Use the full screen width
 )
 
+# Add debug information for troubleshooting
+st.sidebar.markdown("---")
+st.sidebar.header("🔧 Debug Info")
+st.sidebar.write(f"Streamlit version: {st.__version__}")
+st.sidebar.write(f"Pandas version: {pd.__version__}")
+
+# Add option to force fallback mode
+force_fallback = st.sidebar.checkbox("Force Fallback Mode", help="Use native Streamlit components instead of HTML")
+
 # --- Data Curation ---
 # This is the core data for our application.
 # We've created a list of dictionaries, where each dictionary is an asset.
@@ -90,6 +99,8 @@ Each asset is positioned based on its characteristics and scored on four key met
 
 # --- Sidebar Controls ---
 st.sidebar.header("⚙️ Controls")
+
+# Color metric selector
 color_metric = st.sidebar.selectbox(
     "Color Code By:",
     options=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
@@ -101,8 +112,37 @@ color_metric = st.sidebar.selectbox(
     }[x]
 )
 
+# Category filter
+categories = ['All'] + sorted(df['Category'].unique().tolist())
+selected_category = st.sidebar.selectbox(
+    "Filter by Category:",
+    options=categories
+)
+
+# Search functionality
+search_term = st.sidebar.text_input(
+    "Search Assets:",
+    placeholder="Enter symbol or name..."
+)
+
+# Color scale legend
 st.sidebar.markdown("---")
-st.sidebar.header("Metric Definitions")
+st.sidebar.header("🎨 Color Scale")
+legend_html = """
+<div style='display: flex; flex-direction: column; gap: 10px;'>
+    <div style='display: flex; align-items: center; gap: 10px;'>
+        <div style='width: 100px; height: 20px; background: linear-gradient(to right, rgb(255,40,40), rgb(255,142,40), rgb(255,255,40), rgb(142,255,40), rgb(40,255,40)); border: 1px solid #ccc;'></div>
+        <span style='font-size: 12px;'>""" + ("Low → High Liquidity" if color_metric == 'Liquidity' else "Low → High " + color_metric) + """</span>
+    </div>
+    <div style='display: flex; justify-content: space-between; font-size: 10px; color: #666;'>
+        <span>1</span><span>3</span><span>5</span><span>7</span><span>10</span>
+    </div>
+</div>
+"""
+st.sidebar.markdown(legend_html, unsafe_allow_html=True)
+
+st.sidebar.markdown("---")
+st.sidebar.header("📊 Metric Definitions")
 st.sidebar.info(
     """
     - **Market Risk**: Potential for investment loss due to factors that affect the overall financial market (1=Low, 10=High).
@@ -113,6 +153,31 @@ st.sidebar.info(
 )
 
 
+# --- Filter Data Based on User Selection ---
+
+# Apply category filter
+filtered_df = df.copy()
+if selected_category != 'All':
+    filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+
+# Apply search filter
+if search_term:
+    search_mask = (
+        filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
+        filtered_df['Name'].str.contains(search_term, case=False, na=False)
+    )
+    filtered_df = filtered_df[search_mask]
+
+# Display statistics
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Total Assets", len(df))
+with col2:
+    st.metric("Filtered Assets", len(filtered_df))
+with col3:
+    avg_metric_value = filtered_df[color_metric].mean() if len(filtered_df) > 0 else 0
+    st.metric(f"Avg {color_metric}", f"{avg_metric_value:.1f}")
+
 # --- Generate the Periodic Table using HTML and CSS ---
 
 # We use st.markdown with unsafe_allow_html=True to render custom HTML.
@@ -122,98 +187,329 @@ st.sidebar.info(
 max_col = df['GridCol'].max()
 max_row = df['GridRow'].max()
 
-# CSS for the grid container and the individual elements
-# This is where the magic happens for the layout and hover effects.
-html_string = f"""
-<style>
-    .grid-container {{
-        display: grid;
-        grid-template-columns: repeat({max_col}, 1fr);
-        grid-template-rows: repeat({max_row}, auto);
-        gap: 5px;
-        width: 100%;
-        margin-top: 20px;
-    }}
-    .grid-item {{
-        border: 1px solid #333;
-        border-radius: 5px;
-        padding: 10px;
-        text-align: center;
-        position: relative; /* Needed for the tooltip */
-        cursor: default;
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        height: 100px; /* Fixed height for alignment */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }}
-    .grid-item:hover {{
-        transform: scale(1.1);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        z-index: 10;
-    }}
-    .grid-item .symbol {{
-        font-size: 1.5em;
-        font-weight: bold;
-    }}
-    .grid-item .name {{
-        font-size: 0.7em;
-    }}
-    .grid-item .tooltiptext {{
-        visibility: hidden;
-        width: 220px;
-        background-color: #222;
-        color: #fff;
-        text-align: left;
-        border-radius: 6px;
-        padding: 10px;
-        position: absolute;
-        z-index: 1;
-        bottom: 115%; /* Position the tooltip above the item */
-        left: 50%;
-        margin-left: -110px; /* Use half of the width to center the tooltip */
-        opacity: 0;
-        transition: opacity 0.3s;
-    }}
-    .grid-item:hover .tooltiptext {{
-        visibility: visible;
-        opacity: 1;
-    }}
-    .tooltiptext p {{
-        margin: 5px 0;
-        font-size: 0.9em;
-    }}
-</style>
-
-<div class="grid-container">
-"""
-
-# Loop through the DataFrame and create an HTML element for each asset
-for _, asset in df.iterrows():
-    color = get_color_for_value(asset[color_metric], color_metric)
+# Try HTML rendering first, with fallback to Streamlit native components
+if not force_fallback:
+    try:
+    # CSS for the grid container and the individual elements
+    # This is where the magic happens for the layout and hover effects.
+    html_string = f"""
+    <style>
+        .periodic-table-container {{
+            display: grid;
+            grid-template-columns: repeat({max_col}, minmax(80px, 1fr));
+            grid-template-rows: repeat({max_row}, auto);
+            gap: 8px;
+            width: 100%;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }}
+        
+        .asset-element {{
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+        }}
+        
+        .asset-element.dimmed {{
+            opacity: 0.3;
+            transform: scale(0.95);
+        }}
+        
+        .asset-element:hover {{
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+            z-index: 100;
+            border-color: #fff;
+        }}
+        
+        .asset-symbol {{
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 2px;
+        }}
+        
+        .asset-name {{
+            font-size: 0.65em;
+            color: #333;
+            line-height: 1.2;
+        }}
+        
+        .tooltip-content {{
+            visibility: hidden;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.9);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            min-width: 200px;
+        }}
+        
+        .asset-element:hover .tooltip-content {{
+            visibility: visible;
+            opacity: 1;
+        }}
+        
+        .tooltip-content::after {{
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0,0,0,0.9) transparent transparent transparent;
+        }}
+        
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {{
+            .periodic-table-container {{
+                grid-template-columns: repeat({min(max_col//2, 8)}, minmax(70px, 1fr));
+                gap: 6px;
+            }}
+            .asset-element {{
+                height: 75px;
+                padding: 6px;
+            }}
+        }}
+        
+        @media (max-width: 768px) {{
+            .periodic-table-container {{
+                grid-template-columns: repeat({min(max_col//3, 6)}, minmax(60px, 1fr));
+                gap: 4px;
+            }}
+            .asset-element {{
+                height: 60px;
+                padding: 4px;
+            }}
+            .asset-symbol {{
+                font-size: 1.1em;
+            }}
+            .asset-name {{
+                font-size: 0.55em;
+            }}
+        }}
+    </style>
     
-    tooltip_html = f"""
-    <div class='tooltiptext'>
-        <p><strong>Name:</strong> {asset['Name']}</p>
-        <p><strong>Category:</strong> {asset['Category']}</p>
-        <hr style='border-color: #444;'>
-        <p><strong>Risk:</strong> {'⭐' * int(asset['Risk'])}{'⚫' * (10 - int(asset['Risk']))} ({asset['Risk']})</p>
-        <p><strong>Liquidity:</strong> {'💧' * int(asset['Liquidity'])}{'⚫' * (10 - int(asset['Liquidity']))} ({asset['Liquidity']})</p>
-        <p><strong>Op Cost:</strong> {'💲' * int(asset['OpCost'])}{'⚫' * (10 - int(asset['OpCost']))} ({asset['OpCost']})</p>
-        <p><strong>Op Risk:</strong> {'⚠️' * int(asset['OpRisk'])}{'⚫' * (10 - int(asset['OpRisk']))} ({asset['OpRisk']})</p>
-    </div>
+    <div class="periodic-table-container">
     """
 
-    html_string += f"""
-    <div class="grid-item" style="grid-column: {asset['GridCol']}; grid-row: {asset['GridRow']}; background-color: {color};">
-        <div class="symbol">{asset['Symbol']}</div>
-        <div class="name">{asset['Name']}</div>
-        {tooltip_html}
-    </div>
-    """
+    # Loop through the DataFrame and create an HTML element for each asset
+    for _, asset in df.iterrows():
+        color = get_color_for_value(asset[color_metric], color_metric)
+        
+        # Check if this asset should be highlighted or dimmed based on filters
+        is_filtered_out = (
+            (selected_category != 'All' and asset['Category'] != selected_category) or
+            (search_term and not (
+                search_term.lower() in asset['Symbol'].lower() or 
+                search_term.lower() in asset['Name'].lower()
+            ))
+        )
+        
+        css_class = "asset-element dimmed" if is_filtered_out else "asset-element"
+        
+        # Create tooltip content with better formatting
+        tooltip_content = f"""
+        <div class='tooltip-content'>
+            <strong>{asset['Name']}</strong><br/>
+            Category: {asset['Category']}<br/>
+            Risk: {asset['Risk']}/10 | Liquidity: {asset['Liquidity']}/10<br/>
+            Op Cost: {asset['OpCost']}/10 | Op Risk: {asset['OpRisk']}/10
+        </div>
+        """
 
-html_string += "</div>"
+        html_string += f"""
+        <div class="{css_class}" style="grid-column: {asset['GridCol']}; grid-row: {asset['GridRow']}; background-color: {color};">
+            <div class="asset-symbol">{asset['Symbol']}</div>
+            <div class="asset-name">{asset['Name']}</div>
+            {tooltip_content}
+        </div>
+        """
 
-# Render the final HTML in Streamlit
-st.markdown(html_string, unsafe_allow_html=True)
+    html_string += "</div>"
+
+    # Render the final HTML in Streamlit
+    st.markdown(html_string, unsafe_allow_html=True)
+    
+    except Exception as e:
+        # Fallback: Use Streamlit native components if HTML fails
+        st.error(f"HTML rendering failed: {str(e)}")
+        st.warning("Falling back to native Streamlit components...")
+        force_fallback = True
+
+if force_fallback:
+    # Create fallback using Streamlit columns and containers
+    st.subheader("🧪 Asset Overview (Fallback Mode)")
+    
+    # Group assets by row for better display
+    for row in range(1, max_row + 1):
+        row_assets = df[df['GridRow'] == row].sort_values('GridCol')
+        if len(row_assets) > 0:
+            cols = st.columns(len(row_assets))
+            for idx, (_, asset) in enumerate(row_assets.iterrows()):
+                color = get_color_for_value(asset[color_metric], color_metric)
+                
+                # Check if this asset should be highlighted or dimmed based on filters
+                is_filtered_out = (
+                    (selected_category != 'All' and asset['Category'] != selected_category) or
+                    (search_term and not (
+                        search_term.lower() in asset['Symbol'].lower() or 
+                        search_term.lower() in asset['Name'].lower()
+                    ))
+                )
+                
+                opacity = "0.3" if is_filtered_out else "1.0"
+                
+                with cols[idx]:
+                    st.markdown(f"""
+                    <div style="
+                        background-color: {color}; 
+                        padding: 10px; 
+                        border-radius: 5px; 
+                        text-align: center;
+                        border: 1px solid #333;
+                        margin: 2px;
+                        opacity: {opacity};
+                        transition: opacity 0.3s ease;
+                    ">
+                        <strong style="font-size: 1.2em;">{asset['Symbol']}</strong><br/>
+                        <small>{asset['Name']}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Show details on hover (using expander as fallback)
+                    with st.expander(f"Details: {asset['Symbol']}"):
+                        st.write(f"**Name:** {asset['Name']}")
+                        st.write(f"**Category:** {asset['Category']}")
+                        st.write(f"**Risk:** {asset['Risk']}/10")
+                        st.write(f"**Liquidity:** {asset['Liquidity']}/10")
+                        st.write(f"**Op Cost:** {asset['OpCost']}/10")
+                        st.write(f"**Op Risk:** {asset['OpRisk']}/10")
+
+# --- Asset Comparison Section ---
+st.markdown("---")
+st.header("🔍 Asset Comparison")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    asset1 = st.selectbox(
+        "Select First Asset:",
+        options=df['Symbol'].tolist(),
+        format_func=lambda x: f"{x} - {df[df['Symbol']==x]['Name'].iloc[0]}"
+    )
+
+with col2:
+    asset2 = st.selectbox(
+        "Select Second Asset:",
+        options=df['Symbol'].tolist(),
+        format_func=lambda x: f"{x} - {df[df['Symbol']==x]['Name'].iloc[0]}",
+        index=1 if len(df) > 1 else 0
+    )
+
+if asset1 and asset2:
+    asset1_data = df[df['Symbol'] == asset1].iloc[0]
+    asset2_data = df[df['Symbol'] == asset2].iloc[0]
+    
+    # Create comparison chart
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    # Radar chart data
+    metrics = ['Risk', 'Liquidity', 'OpCost', 'OpRisk']
+    asset1_values = [asset1_data[metric] for metric in metrics]
+    asset2_values = [asset2_data[metric] for metric in metrics]
+    
+    # Create comparison table
+    comparison_df = pd.DataFrame({
+        'Metric': metrics,
+        f'{asset1} ({asset1_data["Name"]})': asset1_values,
+        f'{asset2} ({asset2_data["Name"]})': asset2_values,
+        'Difference': [asset2_values[i] - asset1_values[i] for i in range(len(metrics))]
+    })
+    
+    # Format the difference column with colors
+    def highlight_diff(val):
+        if val > 0:
+            return 'color: red'
+        elif val < 0:
+            return 'color: green'
+        return ''
+    
+    styled_df = comparison_df.style.applymap(highlight_diff, subset=['Difference'])
+    st.dataframe(styled_df, use_container_width=True)
+    
+    # Key insights
+    st.subheader("📊 Key Insights")
+    insights = []
+    
+    if asset1_data['Risk'] > asset2_data['Risk']:
+        insights.append(f"• **{asset1}** has higher market risk than **{asset2}** (+{asset1_data['Risk'] - asset2_data['Risk']} points)")
+    elif asset2_data['Risk'] > asset1_data['Risk']:
+        insights.append(f"• **{asset2}** has higher market risk than **{asset1}** (+{asset2_data['Risk'] - asset1_data['Risk']} points)")
+    
+    if asset1_data['Liquidity'] > asset2_data['Liquidity']:
+        insights.append(f"• **{asset1}** is more liquid than **{asset2}** (+{asset1_data['Liquidity'] - asset2_data['Liquidity']} points)")
+    elif asset2_data['Liquidity'] > asset1_data['Liquidity']:
+        insights.append(f"• **{asset2}** is more liquid than **{asset1}** (+{asset2_data['Liquidity'] - asset1_data['Liquidity']} points)")
+    
+    for insight in insights:
+        st.markdown(insight)
+
+# --- Data Export Section ---
+st.markdown("---")
+st.header("📤 Data Export")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button("📊 Export Filtered Data (CSV)"):
+        csv_data = filtered_df.to_csv(index=False)
+        st.download_button(
+            label="Download CSV",
+            data=csv_data,
+            file_name=f"asset_data_filtered_{selected_category.lower().replace(' ', '_')}.csv",
+            mime="text/csv"
+        )
+
+with col2:
+    if st.button("📈 Export All Data (JSON)"):
+        json_data = df.to_json(orient='records', indent=2)
+        st.download_button(
+            label="Download JSON",
+            data=json_data,
+            file_name="asset_data_complete.json",
+            mime="application/json"
+        )
+
+with col3:
+    if st.button("📋 Export Summary Stats"):
+        summary_stats = df.describe()
+        csv_stats = summary_stats.to_csv()
+        st.download_button(
+            label="Download Stats CSV",
+            data=csv_stats,
+            file_name="asset_summary_statistics.csv",
+            mime="text/csv"
+        )
