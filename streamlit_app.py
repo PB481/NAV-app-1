@@ -886,25 +886,31 @@ with tab3:
                              ["Scatter Matrix", "Parallel Coordinates", "Radar Chart", "Box Plots"])
     
     if chart_type == "Scatter Matrix" and PLOTLY_AVAILABLE:
-        fig_matrix = px.scatter_matrix(
-            display_df,
-            dimensions=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
-            color='Category',
-            hover_name='Symbol',
-            title="Asset Metrics Scatter Matrix"
-        )
-        fig_matrix.update_layout(height=600)
-        st.plotly_chart(fig_matrix, use_container_width=True)
+        try:
+            fig_matrix = px.scatter_matrix(
+                display_df,
+                dimensions=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
+                color='Category',
+                hover_name='Symbol',
+                title="Asset Metrics Scatter Matrix"
+            )
+            fig_matrix.update_layout(height=600)
+            st.plotly_chart(fig_matrix, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error creating scatter matrix: {str(e)}")
     
     elif chart_type == "Parallel Coordinates" and PLOTLY_AVAILABLE:
-        fig_parallel = px.parallel_coordinates(
-            display_df,
-            dimensions=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
-            color=color_metric,
-            labels={'Symbol': 'Asset Symbol'},
-            title=f"Parallel Coordinates Plot (Colored by {color_metric})"
-        )
-        st.plotly_chart(fig_parallel, use_container_width=True)
+        try:
+            fig_parallel = px.parallel_coordinates(
+                display_df,
+                dimensions=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
+                color=color_metric,
+                labels={'Symbol': 'Asset Symbol'},
+                title=f"Parallel Coordinates Plot (Colored by {color_metric})"
+            )
+            st.plotly_chart(fig_parallel, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error creating parallel coordinates: {str(e)}")
     
     elif chart_type == "Radar Chart" and PLOTLY_AVAILABLE:
         # Select assets for radar comparison
@@ -945,20 +951,24 @@ with tab3:
     
     elif chart_type == "Box Plots":
         if PLOTLY_AVAILABLE:
-            # Box plots for each metric
-            metrics = ['Risk', 'Liquidity', 'OpCost', 'OpRisk']
-            
-            for metric in metrics:
-                fig_box = px.box(
-                    display_df, 
-                    x='Category', 
-                    y=metric,
-                    points="all",
-                    hover_name='Symbol',
-                    title=f"{metric} Distribution by Category"
-                )
-                fig_box.update_xaxis(tickangle=45)
-                st.plotly_chart(fig_box, use_container_width=True)
+            try:
+                # Box plots for each metric
+                metrics = ['Risk', 'Liquidity', 'OpCost', 'OpRisk']
+                
+                for metric in metrics:
+                    fig_box = px.box(
+                        display_df, 
+                        x='Category', 
+                        y=metric,
+                        points="all",
+                        hover_name='Symbol',
+                        title=f"{metric} Distribution by Category"
+                    )
+                    fig_box.update_layout(xaxis_tickangle=45)
+                    st.plotly_chart(fig_box, use_container_width=True)
+            except Exception as e:
+                st.error(f"Error creating Plotly box plots: {str(e)}")
+                st.info("Falling back to basic visualization...")
         
         elif SEABORN_AVAILABLE:
             metrics = ['Risk', 'Liquidity', 'OpCost', 'OpRisk']
