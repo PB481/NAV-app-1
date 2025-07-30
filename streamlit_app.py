@@ -1518,11 +1518,13 @@ if st.session_state.portfolio and portfolio_data:
             time_series_df = pd.DataFrame(time_series_data)
             
             # Create multi-series line chart with Altair
+            asset_selection = alt.selection_multi(fields=['Asset'])
+            
             line_chart = alt.Chart(time_series_df).mark_line(
                 point=True,
                 strokeWidth=2
             ).add_selection(
-                alt.selection_multi(fields=['Asset'])
+                asset_selection
             ).encode(
                 x=alt.X('Month:O', title='Month'),
                 y=alt.Y('Portfolio_Value:Q', title='Portfolio Value (Weighted %)'),
@@ -1533,7 +1535,7 @@ if st.session_state.portfolio and portfolio_data:
                     alt.value([1])      # Solid line for low-risk assets
                 ),
                 opacity=alt.condition(
-                    alt.selection_multi(fields=['Asset']),
+                    asset_selection,
                     alt.value(1.0),
                     alt.value(0.3)
                 ),
@@ -1691,29 +1693,215 @@ if st.session_state.portfolio and portfolio_data:
         )
 
 # --- Workstream Network Analysis ---
+st.markdown("---")
+st.subheader("🌐 Workstream Network Analysis")
+
 if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
-    st.markdown("---")
-    st.subheader("🌐 Workstream Network Analysis")
-    
     st.write("**Interactive Network Graph - Workstream Dependencies**")
     st.info("This network shows how workstreams are connected through shared applications and processes. Larger nodes indicate higher complexity workstreams.")
     
-    # Build network data
+    try:
+        # Build network data
+        # Create graph
+        G = nx.Graph()
+        
+        # Add workstream nodes
+        for name, data in workstreams_data.items():
+            G.add_node(name, 
+                      node_type='workstream',
+                      complexity=data['complexity'],
+                      operational_risk=data['operational_risk'],
+                      gap_count=len(identified_gaps.get(name, [])),
+                      process_count=len(data['processes']),
+                      app_count=len(data['applications']))
+        
+        # Add application nodes and connections
+        app_connections = {}
+        for ws_name, ws_data in workstreams_data.items():
+            for app in ws_data['applications']:
+                if app not in app_connections:
+                    app_connections[app] = []
+                app_connections[app].append(ws_name)
+        
+        # Create connections between workstreams that share applications
+        for app, workstreams in app_connections.items():
+            if len(workstreams) > 1:
+                # Add application as a node
+                G.add_node(app, node_type='application', shared_by=len(workstreams))
+                
+                # Connect workstreams through shared applications
+                for ws in workstreams:
+                    G.add_edge(ws, app, connection_type='uses_application')
+        
+        # Calculate layout using spring layout
+        pos = nx.spring_layout(G, k=3, iterations=50)
+        
+        # Prepare data for Plotly network graph
+        edge_x = []
+        edge_y = []
+        edge_info = []
+        
+        for edge in G.edges():
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+            edge_info.append(f"{edge[0]} ↔ {edge[1]}")
+        
+        # Create edges trace
+        edge_trace = go.Scatter(
+            x=edge_x, y=edge_y,
+            line=dict(width=1, color='#888'),
+            hoverinfo='none',
+            mode='lines'
+        )
+        
+        # Prepare node data
+        node_x = []
+        node_y = []
+        node_info = []
+        node_colors = []
+        node_sizes = []
+        node_symbols = []
+        
+        for node in G.nodes():
+            x, y = pos[node]
+            node_x.append(x)
+            node_y.append(y)
+            
+            if G.nodes[node]['node_type'] == 'workstream':
+                # Workstream nodes
+                complexity = G.nodes[node]['complexity']
+                gap_count = G.nodes[node]['gap_count']
+                process_count = G.nodes[node]['process_count']
+                
+                node_info.append(f"<b>{node}</b><br>" +
+                               f"Complexity: {complexity}/10<br>" +
+                               f"Processes: {process_count}<br>" +
+                               f"Gaps: {gap_count}<br>" +
+                               f"Type: Workstream")
+                
+                node_colors.append(complexity)
+                node_sizes.append(max(20, complexity * 3))
+                node_symbols.append('circle')
+                
+            else:
+                # Application nodes
+                shared_by = G.nodes[node]['shared_by']
+                node_info.append(f"<b>{node}</b><br>" +
+                               f"Shared by: {shared_by} workstreams<br>" +
+                               f"Type: Application")
+                
+                node_colors.append(shared_by + 10)  # Different color scale
+                node_sizes.append(max(15, shared_by * 5))
+                node_symbols.append('diamond')
+        
+        # Create nodes trace
+        node_trace = go.Scatter(
+            x=node_x, y=node_y,
+            mode='markers+text',
+            hoverinfo='text',
+            text=[node for node in G.nodes()],
+            textposition="middle center",
+            textfont=dict(size=8, color="white"),
+            hovertext=node_info,
+            marker=dict(
+                showscale=True,
+                colorscale='Viridis',
+                reversescale=True,
+                color=node_colors,
+                size=node_sizes,
+                symbol=node_symbols,
+                colorbar=dict(
+                    thickness=15,
+                    len=0.5,
+                    x=1.05,
+                    title="Complexity / Sharing Level"
+                ),
+                line=dict(width=2, color='white')
+            )
+        )
+        
+        # Create figure
+        fig_network = go.Figure(data=[edge_trace, node_trace])
+        
+        fig_network.update_layout(
+            title="Workstream Dependencies Network<br><sub>Circles = Workstreams, Diamonds = Shared Applications</sub>",
+            titlefont_size=16,
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=20,l=5,r=5,t=40),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            height=700
+        )
+        
+        # Add annotation separately
+        fig_network.add_annotation(
+            text="Connections show shared applications between workstreams",
+            showarrow=False,
+            xref="paper", yref="paper",
+            x=0.005, y=-0.002,
+            xanchor='left', yanchor='bottom',
+            font=dict(color='gray', size=10)
+        )
+        
+        st.plotly_chart(fig_network, use_container_width=True)
+        
+        # Network analysis metrics
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Total Workstreams", len([n for n in G.nodes() if G.nodes[n]['node_type'] == 'workstream']))
+            st.metric("Shared Applications", len([n for n in G.nodes() if G.nodes[n]['node_type'] == 'application']))
+        
+        with col2:
+            # Calculate centrality metrics
+            centrality = nx.degree_centrality(G)
+            most_connected_ws = max([n for n in G.nodes() if G.nodes[n]['node_type'] == 'workstream'], 
+                                   key=lambda x: centrality[x])
+            st.metric("Most Connected Workstream", most_connected_ws)
+            st.metric("Connection Score", f"{centrality[most_connected_ws]:.2f}")
+        
+        with col3:
+            # Find most shared application
+            most_shared_app = max([n for n in G.nodes() if G.nodes[n]['node_type'] == 'application'], 
+                                 key=lambda x: G.nodes[x]['shared_by'])
+            st.metric("Most Shared Application", most_shared_app)
+            st.metric("Used by", f"{G.nodes[most_shared_app]['shared_by']} workstreams")
+        
+        # Detailed network analysis
+        st.write("**Network Analysis Insights**")
+        
+        # Application sharing analysis
+        st.write("**Most Critical Shared Applications:**")
+        app_sharing = [(app, data['shared_by']) for app, data in G.nodes(data=True) 
+                       if data['node_type'] == 'application']
+        app_sharing.sort(key=lambda x: x[1], reverse=True)
+        
+        for app, share_count in app_sharing[:5]:
+            connected_ws = [n for n in G.neighbors(app)]
+            st.write(f"• **{app}**: Shared by {share_count} workstreams ({', '.join(connected_ws)})")
+        
+        # Workstream connectivity analysis
+        st.write("**Workstream Connectivity Rankings:**")
+        ws_connectivity = [(ws, centrality[ws]) for ws in G.nodes() 
+                          if G.nodes[ws]['node_type'] == 'workstream']
+        ws_connectivity.sort(key=lambda x: x[1], reverse=True)
+        
+        for ws, conn_score in ws_connectivity[:5]:
+            neighbor_count = len(list(G.neighbors(ws)))
+            st.write(f"• **{ws}**: Connectivity score {conn_score:.3f} ({neighbor_count} connections)")
+            
+    except Exception as e:
+        st.error(f"Error creating network visualization: {str(e)}")
+        st.info("Network analysis requires both Plotly and NetworkX libraries.")
+
+else:
+    st.warning("Network analysis requires Plotly and NetworkX libraries.")
+    st.write("**Alternative: Application Sharing Summary**")
     
-    # Create graph
-    G = nx.Graph()
-    
-    # Add workstream nodes
-    for name, data in workstreams_data.items():
-        G.add_node(name, 
-                  node_type='workstream',
-                  complexity=data['complexity'],
-                  operational_risk=data['operational_risk'],
-                  gap_count=len(identified_gaps.get(name, [])),
-                  process_count=len(data['processes']),
-                  app_count=len(data['applications']))
-    
-    # Add application nodes and connections
+    # Create fallback analysis without NetworkX
     app_connections = {}
     for ws_name, ws_data in workstreams_data.items():
         for app in ws_data['applications']:
@@ -1721,172 +1909,20 @@ if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
                 app_connections[app] = []
             app_connections[app].append(ws_name)
     
-    # Create connections between workstreams that share applications
-    for app, workstreams in app_connections.items():
-        if len(workstreams) > 1:
-            # Add application as a node
-            G.add_node(app, node_type='application', shared_by=len(workstreams))
-            
-            # Connect workstreams through shared applications
-            for ws in workstreams:
-                G.add_edge(ws, app, connection_type='uses_application')
+    shared_apps = {app: len(workstreams) for app, workstreams in app_connections.items() if len(workstreams) > 1}
     
-    # Calculate layout using spring layout
-    pos = nx.spring_layout(G, k=3, iterations=50)
-    
-    # Prepare data for Plotly network graph
-    edge_x = []
-    edge_y = []
-    edge_info = []
-    
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-        edge_info.append(f"{edge[0]} ↔ {edge[1]}")
-    
-    # Create edges trace
-    edge_trace = go.Scatter(
-        x=edge_x, y=edge_y,
-        line=dict(width=1, color='#888'),
-        hoverinfo='none',
-        mode='lines'
-    )
-    
-    # Prepare node data
-    node_x = []
-    node_y = []
-    node_info = []
-    node_colors = []
-    node_sizes = []
-    node_symbols = []
-    
-    for node in G.nodes():
-        x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
+    if shared_apps:
+        shared_apps_df = pd.DataFrame([
+            {'Application': app, 'Shared_By': count}
+            for app, count in sorted(shared_apps.items(), key=lambda x: x[1], reverse=True)
+        ])
         
-        if G.nodes[node]['node_type'] == 'workstream':
-            # Workstream nodes
-            complexity = G.nodes[node]['complexity']
-            gap_count = G.nodes[node]['gap_count']
-            process_count = G.nodes[node]['process_count']
-            
-            node_info.append(f"<b>{node}</b><br>" +
-                           f"Complexity: {complexity}/10<br>" +
-                           f"Processes: {process_count}<br>" +
-                           f"Gaps: {gap_count}<br>" +
-                           f"Type: Workstream")
-            
-            node_colors.append(complexity)
-            node_sizes.append(max(20, complexity * 3))
-            node_symbols.append('circle')
-            
-        else:
-            # Application nodes
-            shared_by = G.nodes[node]['shared_by']
-            node_info.append(f"<b>{node}</b><br>" +
-                           f"Shared by: {shared_by} workstreams<br>" +
-                           f"Type: Application")
-            
-            node_colors.append(shared_by + 10)  # Different color scale
-            node_sizes.append(max(15, shared_by * 5))
-            node_symbols.append('diamond')
-    
-    # Create nodes trace
-    node_trace = go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text',
-        hoverinfo='text',
-        text=[node for node in G.nodes()],
-        textposition="middle center",
-        textfont=dict(size=8, color="white"),
-        hovertext=node_info,
-        marker=dict(
-            showscale=True,
-            colorscale='Viridis',
-            reversescale=True,
-            color=node_colors,
-            size=node_sizes,
-            symbol=node_symbols,
-            colorbar=dict(
-                thickness=15,
-                len=0.5,
-                x=1.05,
-                title="Complexity / Sharing Level"
-            ),
-            line=dict(width=2, color='white')
-        )
-    )
-    
-    # Create figure
-    fig_network = go.Figure(data=[edge_trace, node_trace],
-                           layout=go.Layout(
-                               title="Workstream Dependencies Network<br><sub>Circles = Workstreams, Diamonds = Shared Applications</sub>",
-                               titlefont_size=16,
-                               showlegend=False,
-                               hovermode='closest',
-                               margin=dict(b=20,l=5,r=5,t=40),
-                               annotations=[ dict(
-                                   text="Connections show shared applications between workstreams",
-                                   showarrow=False,
-                                   xref="paper", yref="paper",
-                                   x=0.005, y=-0.002,
-                                   xanchor='left', yanchor='bottom',
-                                   font=dict(color='gray', size=10)
-                               )],
-                               xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                               yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                               height=700
-                           ))
-    
-    st.plotly_chart(fig_network, use_container_width=True)
-    
-    # Network analysis metrics
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("Total Workstreams", len([n for n in G.nodes() if G.nodes[n]['node_type'] == 'workstream']))
-        st.metric("Shared Applications", len([n for n in G.nodes() if G.nodes[n]['node_type'] == 'application']))
-    
-    with col2:
-        # Calculate centrality metrics
-        centrality = nx.degree_centrality(G)
-        most_connected_ws = max([n for n in G.nodes() if G.nodes[n]['node_type'] == 'workstream'], 
-                               key=lambda x: centrality[x])
-        st.metric("Most Connected Workstream", most_connected_ws)
-        st.metric("Connection Score", f"{centrality[most_connected_ws]:.2f}")
-    
-    with col3:
-        # Find most shared application
-        most_shared_app = max([n for n in G.nodes() if G.nodes[n]['node_type'] == 'application'], 
-                             key=lambda x: G.nodes[x]['shared_by'])
-        st.metric("Most Shared Application", most_shared_app)
-        st.metric("Used by", f"{G.nodes[most_shared_app]['shared_by']} workstreams")
-    
-    # Detailed network analysis
-    st.write("**Network Analysis Insights**")
-    
-    # Application sharing analysis
-    st.write("**Most Critical Shared Applications:**")
-    app_sharing = [(app, data['shared_by']) for app, data in G.nodes(data=True) 
-                   if data['node_type'] == 'application']
-    app_sharing.sort(key=lambda x: x[1], reverse=True)
-    
-    for app, share_count in app_sharing[:5]:
-        connected_ws = [n for n in G.neighbors(app)]
-        st.write(f"• **{app}**: Shared by {share_count} workstreams ({', '.join(connected_ws)})")
-    
-    # Workstream connectivity analysis
-    st.write("**Workstream Connectivity Rankings:**")
-    ws_connectivity = [(ws, centrality[ws]) for ws in G.nodes() 
-                      if G.nodes[ws]['node_type'] == 'workstream']
-    ws_connectivity.sort(key=lambda x: x[1], reverse=True)
-    
-    for ws, conn_score in ws_connectivity[:5]:
-        neighbor_count = len(list(G.neighbors(ws)))
-        st.write(f"• **{ws}**: Connectivity score {conn_score:.3f} ({neighbor_count} connections)")
+        st.bar_chart(shared_apps_df.set_index('Application')['Shared_By'])
+        
+        st.write("**Most Shared Applications:**")
+        for app, count in sorted(shared_apps.items(), key=lambda x: x[1], reverse=True)[:5]:
+            workstreams = app_connections[app]
+            st.write(f"• **{app}**: Used by {count} workstreams ({', '.join(workstreams)})")
 
 # --- Data Export Section ---
 st.markdown("---")
