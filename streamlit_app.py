@@ -179,72 +179,83 @@ max_row = df['GridRow'].max()
 # Create the periodic table using Streamlit columns and containers
 st.subheader("🧪 The Periodic Table of Asset Types")
 
-# Group assets by row for better display
-for row in range(1, max_row + 1):
-    row_assets = df[df['GridRow'] == row].sort_values('GridCol')
-    if len(row_assets) > 0:
-        # Create columns for this row - use max_col to maintain alignment
-        cols = st.columns(max_col)
+# Display assets in a more manageable grid layout
+# Instead of trying to replicate the exact periodic table structure with too many columns,
+# we'll group assets by category and display them in organized sections
+
+# Filter assets based on user selection
+display_assets = df.copy()
+if selected_category != 'All':
+    display_assets = display_assets[display_assets['Category'] == selected_category]
+if search_term:
+    search_mask = (
+        display_assets['Symbol'].str.contains(search_term, case=False, na=False) |
+        display_assets['Name'].str.contains(search_term, case=False, na=False)
+    )
+    display_assets = display_assets[search_mask]
+
+# Group by category for organized display
+categories = display_assets['Category'].unique()
+
+for category in sorted(categories):
+    category_assets = display_assets[display_assets['Category'] == category].sort_values(['GridRow', 'GridCol'])
+    
+    if len(category_assets) > 0:
+        st.markdown(f"### {category}")
         
-        for _, asset in row_assets.iterrows():
-            color = get_color_for_value(asset[color_metric], color_metric)
+        # Display assets in rows of 6 (manageable column count)
+        assets_list = category_assets.to_dict('records')
+        
+        for i in range(0, len(assets_list), 6):
+            row_assets = assets_list[i:i+6]
+            cols = st.columns(len(row_assets))
             
-            # Check if this asset should be highlighted or dimmed based on filters
-            is_filtered_out = (
-                (selected_category != 'All' and asset['Category'] != selected_category) or
-                (search_term and not (
-                    search_term.lower() in asset['Symbol'].lower() or 
-                    search_term.lower() in asset['Name'].lower()
-                ))
-            )
-            
-            opacity = "0.3" if is_filtered_out else "1.0"
-            
-            # Use the correct column index (GridCol - 1 since columns are 0-indexed)
-            col_idx = asset['GridCol'] - 1
-            
-            with cols[col_idx]:
-                # Create the asset element with enhanced styling
-                st.markdown(f"""
-                <div style="
-                    background-color: {color}; 
-                    padding: 12px; 
-                    border-radius: 8px; 
-                    text-align: center;
-                    border: 2px solid #333;
-                    margin: 3px;
-                    opacity: {opacity};
-                    transition: opacity 0.3s ease;
-                    height: 100px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                ">
-                    <strong style="font-size: 1.4em; margin-bottom: 4px;">{asset['Symbol']}</strong><br/>
-                    <small style="font-size: 0.7em; line-height: 1.2;">{asset['Name']}</small>
-                </div>
-                """, unsafe_allow_html=True)
+            for idx, asset in enumerate(row_assets):
+                color = get_color_for_value(asset[color_metric], color_metric)
                 
-                # Show detailed information in an expander
-                with st.expander(f"📊 {asset['Symbol']} Details"):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write(f"**Name:** {asset['Name']}")
-                        st.write(f"**Category:** {asset['Category']}")
-                    with col2:
-                        st.write(f"**Position:** Row {asset['GridRow']}, Col {asset['GridCol']}")
+                with cols[idx]:
+                    # Create the asset element with enhanced styling
+                    st.markdown(f"""
+                    <div style="
+                        background-color: {color}; 
+                        padding: 12px; 
+                        border-radius: 8px; 
+                        text-align: center;
+                        border: 2px solid #333;
+                        margin: 3px;
+                        transition: transform 0.2s ease;
+                        height: 100px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    ">
+                        <strong style="font-size: 1.4em; margin-bottom: 4px;">{asset['Symbol']}</strong><br/>
+                        <small style="font-size: 0.7em; line-height: 1.2;">{asset['Name']}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-                    # Metrics with visual indicators
-                    st.markdown("**Metrics:**")
-                    metrics_col1, metrics_col2 = st.columns(2)
-                    with metrics_col1:
-                        st.metric("Risk", f"{asset['Risk']}/10", help="Market/Credit Risk")
-                        st.metric("Op Cost", f"{asset['OpCost']}/10", help="Operational Cost")
-                    with metrics_col2:
-                        st.metric("Liquidity", f"{asset['Liquidity']}/10", help="Liquidity Level")
-                        st.metric("Op Risk", f"{asset['OpRisk']}/10", help="Operational Risk")
+                    # Show detailed information in an expander
+                    with st.expander(f"📊 {asset['Symbol']} Details"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Name:** {asset['Name']}")
+                            st.write(f"**Category:** {asset['Category']}")
+                        with col2:
+                            st.write(f"**Position:** Row {asset['GridRow']}, Col {asset['GridCol']}")
+                        
+                        # Metrics with visual indicators
+                        st.markdown("**Metrics:**")
+                        metrics_col1, metrics_col2 = st.columns(2)
+                        with metrics_col1:
+                            st.metric("Risk", f"{asset['Risk']}/10", help="Market/Credit Risk")
+                            st.metric("Op Cost", f"{asset['OpCost']}/10", help="Operational Cost")
+                        with metrics_col2:
+                            st.metric("Liquidity", f"{asset['Liquidity']}/10", help="Liquidity Level")
+                            st.metric("Op Risk", f"{asset['OpRisk']}/10", help="Operational Risk")
+        
+        st.markdown("---")  # Separator between categories
 
 # --- Asset Comparison Section ---
 st.markdown("---")
@@ -292,7 +303,7 @@ if asset1 and asset2:
             return 'color: green'
         return ''
     
-    styled_df = comparison_df.style.applymap(highlight_diff, subset=['Difference'])
+    styled_df = comparison_df.style.map(highlight_diff, subset=['Difference'])
     st.dataframe(styled_df, use_container_width=True)
     
     # Key insights
