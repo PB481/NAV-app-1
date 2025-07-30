@@ -338,244 +338,86 @@ def get_color_for_value(value, metric):
         
     return f"rgb({red}, {green}, {blue})"
 
-@st.cache_data
 def create_interactive_periodic_table(df, color_metric, selected_category="All", search_term=""):
     """
     Creates an authentic periodic table layout using CSS Grid with hover tooltips
     """
-    # Filter data
-    filtered_df = df.copy()
-    if selected_category != 'All':
-        filtered_df = filtered_df[filtered_df['Category'] == selected_category]
-    if search_term:
-        search_mask = (
-            filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
-            filtered_df['Name'].str.contains(search_term, case=False, na=False)
-        )
-        filtered_df = filtered_df[search_mask]
-    
-    max_row, max_col = df['GridRow'].max(), df['GridCol'].max()
-    
-    # Create CSS Grid HTML
-    html = f"""
-    <style>
-    .periodic-table-container {{
-        width: 100%;
-        overflow-x: auto;
-        padding: 20px 0;
-    }}
-    
-    .periodic-table {{
-        display: grid;
-        grid-template-columns: repeat({max_col}, minmax(80px, 1fr));
-        grid-template-rows: repeat({max_row}, 100px);
-        gap: 3px;
-        width: 100%;
-        min-width: 1200px;
-        margin: 0 auto;
-    }}
-    
-    .element {{
-        border: 2px solid #333;
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
-        font-family: 'Arial', sans-serif;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }}
-    
-    .element:hover {{
-        transform: scale(1.05);
-        z-index: 100;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        border-color: #fff;
-    }}
-    
-    .element-symbol {{
-        font-size: 1.4em;
-        font-weight: bold;
-        color: #fff;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
-        margin-bottom: 2px;
-    }}
-    
-    .element-metric {{
-        font-size: 0.7em;
-        color: #fff;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
-        background: rgba(0,0,0,0.3);
-        padding: 2px 6px;
-        border-radius: 10px;
-    }}
-    
-    .element-filtered {{
-        opacity: 0.3;
-        filter: grayscale(70%);
-    }}
-    
-    .tooltip {{
-        visibility: hidden;
-        position: absolute;
-        top: -120px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #333;
-        color: white;
-        text-align: left;
-        border-radius: 8px;
-        padding: 12px;
-        font-size: 0.8em;
-        white-space: nowrap;
-        z-index: 1000;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        border: 1px solid #555;
-        min-width: 200px;
-    }}
-    
-    .tooltip::after {{
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -5px;
-        border-width: 5px;
-        border-style: solid;
-        border-color: #333 transparent transparent transparent;
-    }}
-    
-    .element:hover .tooltip {{
-        visibility: visible;
-        opacity: 1;
-    }}
-    
-    .tooltip-row {{
-        display: flex;
-        justify-content: space-between;
-        margin: 2px 0;
-    }}
-    
-    .metric-bar {{
-        display: inline-block;
-        height: 8px;
-        border-radius: 4px;
-        margin-left: 8px;
-    }}
-    
-    /* Mobile responsiveness */
-    @media (max-width: 768px) {{
-        .periodic-table {{
-            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-            min-width: 100%;
-            gap: 2px;
-        }}
-        .element {{
-            font-size: 0.8em;
-        }}
-        .tooltip {{
-            position: fixed;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            max-width: 90vw;
-        }}
-    }}
-    
-    @media (max-width: 480px) {{
-        .periodic-table {{
-            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-        }}
-        .element-symbol {{
-            font-size: 1.1em;
-        }}
-        .element-metric {{
-            font-size: 0.6em;
-        }}
-    }}
-    </style>
-    
-    <div class="periodic-table-container">
-        <div class="periodic-table">
-    """
-    
-    # Create a grid to track occupied positions
-    occupied_positions = set()
-    for _, asset in df.iterrows():
-        occupied_positions.add((asset['GridRow'], asset['GridCol']))
-    
-    # Add elements to the grid
-    for _, asset in df.iterrows():
-        color = get_color_for_value(asset[color_metric], color_metric)
+    try:
+        # Filter data
+        filtered_df = df.copy()
+        if selected_category != 'All':
+            filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+        if search_term:
+            search_mask = (
+                filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
+                filtered_df['Name'].str.contains(search_term, case=False, na=False)
+            )
+            filtered_df = filtered_df[search_mask]
         
-        # Check if this asset should be filtered out
-        is_filtered_out = (
-            (selected_category != 'All' and asset['Category'] != selected_category) or
-            (search_term and not (
-                search_term.lower() in asset['Symbol'].lower() or 
-                search_term.lower() in asset['Name'].lower()
-            ))
-        )
+        max_row, max_col = int(df['GridRow'].max()), int(df['GridCol'].max())
         
-        filtered_class = "element-filtered" if is_filtered_out else ""
+        # Create a much simpler HTML structure that Streamlit can handle better
+        html = f"""
+        <div style="width: 100%; overflow-x: auto; padding: 10px;">
+            <div style="display: grid; 
+                        grid-template-columns: repeat({max_col}, 70px); 
+                        grid-template-rows: repeat({max_row}, 70px); 
+                        gap: 2px; 
+                        justify-content: center;
+                        background: #f0f0f0;
+                        padding: 20px;
+                        border-radius: 10px;">
+        """
         
-        # Create metric bars for tooltip
-        def create_metric_bar(value, max_val=10):
-            width = int((value / max_val) * 100)
-            if value <= 3:
-                color = "#28a745"  # Green
-            elif value <= 6:
-                color = "#ffc107"  # Yellow
-            else:
-                color = "#dc3545"  # Red
-            return f'<div class="metric-bar" style="width: {width}px; background-color: {color};"></div>'
-        
-        html += f'''
-        <div class="element {filtered_class}" style="
-            grid-row: {asset['GridRow']};
-            grid-column: {asset['GridCol']};
-            background-color: {color};
-        ">
-            <div class="element-symbol">{asset['Symbol']}</div>
-            <div class="element-metric">{color_metric}: {asset[color_metric]}/10</div>
+        # Add elements to the grid
+        for _, asset in df.iterrows():
+            color = get_color_for_value(asset[color_metric], color_metric)
             
-            <div class="tooltip">
-                <strong>{asset['Name']}</strong><br>
-                <em>{asset['Category']}</em><br><br>
-                <div class="tooltip-row">
-                    <span>🎲 Risk:</span>
-                    <span>{asset['Risk']}/10 {create_metric_bar(asset['Risk'])}</span>
+            # Check if this asset should be filtered out
+            is_filtered_out = (
+                (selected_category != 'All' and asset['Category'] != selected_category) or
+                (search_term and not (
+                    search_term.lower() in asset['Symbol'].lower() or 
+                    search_term.lower() in asset['Name'].lower()
+                ))
+            )
+            
+            opacity = "0.3" if is_filtered_out else "1.0"
+            
+            html += f'''
+            <div style="grid-row: {asset['GridRow']}; 
+                        grid-column: {asset['GridCol']}; 
+                        background-color: {color}; 
+                        border: 2px solid #333; 
+                        border-radius: 5px; 
+                        display: flex; 
+                        flex-direction: column; 
+                        justify-content: center; 
+                        align-items: center; 
+                        text-align: center; 
+                        opacity: {opacity};
+                        cursor: pointer;
+                        font-family: Arial, sans-serif;"
+                 title="{asset['Name']} ({asset['Category']}) | Risk: {asset['Risk']}/10 | Liquidity: {asset['Liquidity']}/10 | Op Cost: {asset['OpCost']}/10 | Op Risk: {asset['OpRisk']}/10">
+                <div style="font-size: 14px; font-weight: bold; color: white; text-shadow: 1px 1px 2px black;">
+                    {asset['Symbol']}
                 </div>
-                <div class="tooltip-row">
-                    <span>💧 Liquidity:</span>
-                    <span>{asset['Liquidity']}/10 {create_metric_bar(asset['Liquidity'])}</span>
-                </div>
-                <div class="tooltip-row">
-                    <span>💰 Op Cost:</span>
-                    <span>{asset['OpCost']}/10 {create_metric_bar(asset['OpCost'])}</span>
-                </div>
-                <div class="tooltip-row">
-                    <span>⚠️ Op Risk:</span>
-                    <span>{asset['OpRisk']}/10 {create_metric_bar(asset['OpRisk'])}</span>
-                </div>
-                <div class="tooltip-row">
-                    <span>📍 Position:</span>
-                    <span>Row {asset['GridRow']}, Col {asset['GridCol']}</span>
+                <div style="font-size: 10px; color: white; text-shadow: 1px 1px 2px black;">
+                    {asset[color_metric]}/10
                 </div>
             </div>
+            '''
+        
+        html += """
+            </div>
         </div>
-        '''
-    
-    html += """
-        </div>
-    </div>
-    """
-    
-    return html
+        """
+        
+        return html
+        
+    except Exception as e:
+        # Return a simple error message if grid fails
+        return f'<div style="color: red;">Error creating periodic table: {str(e)}</div>'
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_market_data():
@@ -853,8 +695,84 @@ if market_data:
                       for symbol, data in list(market_data.items())[:5]]))
 
 # Generate and display the interactive periodic table
-periodic_table_html = create_interactive_periodic_table(df, color_metric, selected_category, search_term)
-st.markdown(periodic_table_html, unsafe_allow_html=True)
+try:
+    periodic_table_html = create_interactive_periodic_table(df, color_metric, selected_category, search_term)
+    st.markdown(periodic_table_html, unsafe_allow_html=True)
+except Exception as e:
+    st.error(f"Error rendering periodic table: {str(e)}")
+    # Fallback to the original simplified version
+    st.subheader("📊 Simplified Periodic Table (Fallback)")
+    
+    # Create a more straightforward grid using Plotly
+    if PLOTLY_AVAILABLE:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+        
+        fig = go.Figure()
+        
+        # Apply filters to df
+        filtered_df = df.copy()
+        if selected_category != 'All':
+            filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+        if search_term:
+            search_mask = (
+                filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
+                filtered_df['Name'].str.contains(search_term, case=False, na=False)
+            )
+            filtered_df = filtered_df[search_mask]
+        
+        for _, asset in filtered_df.iterrows():
+            # Determine color based on selected metric
+            color_val = asset[color_metric]
+            if color_metric == 'Liquidity':
+                color = f'rgb({int(255 * (1 - (color_val-1)/9))}, {int(255 * (color_val-1)/9)}, 40)'
+            else:
+                color = f'rgb({int(255 * (color_val-1)/9)}, {int(255 * (1 - (color_val-1)/9))}, 40)'
+            
+            fig.add_trace(go.Scatter(
+                x=[asset['GridCol']],
+                y=[asset['GridRow']],
+                mode='markers+text',
+                marker=dict(
+                    size=60,
+                    color=color,
+                    line=dict(color='black', width=2)
+                ),
+                text=asset['Symbol'],
+                textfont=dict(size=12, color='white'),
+                hovertemplate=f"<b>{asset['Name']}</b><br>" +
+                             f"Category: {asset['Category']}<br>" +
+                             f"Risk: {asset['Risk']}/10<br>" +
+                             f"Liquidity: {asset['Liquidity']}/10<br>" +
+                             f"Op Cost: {asset['OpCost']}/10<br>" +
+                             f"Op Risk: {asset['OpRisk']}/10<extra></extra>",
+                showlegend=False,
+                name=asset['Symbol']
+            ))
+        
+        fig.update_layout(
+            title=f"Periodic Table of Asset Types (Colored by {color_metric})",
+            xaxis=dict(
+                title="Grid Column",
+                showgrid=True,
+                gridcolor="lightgray",
+                range=[0, df['GridCol'].max() + 1]
+            ),
+            yaxis=dict(
+                title="Grid Row",
+                showgrid=True,
+                gridcolor="lightgray",
+                range=[0, df['GridRow'].max() + 1],
+                autorange='reversed'  # Reverse to match periodic table layout
+            ),
+            height=600,
+            width=1200,
+            plot_bgcolor='white'
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.error("Both CSS Grid and Plotly fallback are unavailable. Please check your setup.")
 
 # Add legend and instructions
 st.markdown("""
