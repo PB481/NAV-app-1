@@ -9,6 +9,15 @@ st.set_page_config(
     layout="wide", # Use the full screen width
 )
 
+# Add debug information for troubleshooting
+st.sidebar.markdown("---")
+st.sidebar.header("🔧 Debug Info")
+st.sidebar.write(f"Streamlit version: {st.__version__}")
+st.sidebar.write(f"Pandas version: {pd.__version__}")
+
+# Add option to force fallback mode
+force_fallback = st.sidebar.checkbox("Force Fallback Mode", help="Use native Streamlit components instead of HTML")
+
 # --- Data Curation ---
 # This is the core data for our application.
 # We've created a list of dictionaries, where each dictionary is an asset.
@@ -178,156 +187,225 @@ with col3:
 max_col = df['GridCol'].max()
 max_row = df['GridRow'].max()
 
-# CSS for the grid container and the individual elements
-# This is where the magic happens for the layout and hover effects.
-html_string = f"""
-<style>
-    .grid-container {{
-        display: grid;
-        grid-template-columns: repeat({max_col}, 1fr);
-        grid-template-rows: repeat({max_row}, auto);
-        gap: 5px;
-        width: 100%;
-        margin-top: 20px;
-    }}
+# Try HTML rendering first, with fallback to Streamlit native components
+if not force_fallback:
+    try:
+    # CSS for the grid container and the individual elements
+    # This is where the magic happens for the layout and hover effects.
+    html_string = f"""
+    <style>
+        .periodic-table-container {{
+            display: grid;
+            grid-template-columns: repeat({max_col}, minmax(80px, 1fr));
+            grid-template-rows: repeat({max_row}, auto);
+            gap: 8px;
+            width: 100%;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }}
+        
+        .asset-element {{
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+        }}
+        
+        .asset-element.dimmed {{
+            opacity: 0.3;
+            transform: scale(0.95);
+        }}
+        
+        .asset-element:hover {{
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+            z-index: 100;
+            border-color: #fff;
+        }}
+        
+        .asset-symbol {{
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 2px;
+        }}
+        
+        .asset-name {{
+            font-size: 0.65em;
+            color: #333;
+            line-height: 1.2;
+        }}
+        
+        .tooltip-content {{
+            visibility: hidden;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.9);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            min-width: 200px;
+        }}
+        
+        .asset-element:hover .tooltip-content {{
+            visibility: visible;
+            opacity: 1;
+        }}
+        
+        .tooltip-content::after {{
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0,0,0,0.9) transparent transparent transparent;
+        }}
+        
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {{
+            .periodic-table-container {{
+                grid-template-columns: repeat({min(max_col//2, 8)}, minmax(70px, 1fr));
+                gap: 6px;
+            }}
+            .asset-element {{
+                height: 75px;
+                padding: 6px;
+            }}
+        }}
+        
+        @media (max-width: 768px) {{
+            .periodic-table-container {{
+                grid-template-columns: repeat({min(max_col//3, 6)}, minmax(60px, 1fr));
+                gap: 4px;
+            }}
+            .asset-element {{
+                height: 60px;
+                padding: 4px;
+            }}
+            .asset-symbol {{
+                font-size: 1.1em;
+            }}
+            .asset-name {{
+                font-size: 0.55em;
+            }}
+        }}
+    </style>
     
-    /* Responsive design for mobile and tablet */
-    @media (max-width: 768px) {{
-        .grid-container {{
-            grid-template-columns: repeat({min(max_col, 8)}, 1fr);
-            gap: 3px;
-        }}
-        .grid-item {{
-            height: 80px;
-            padding: 5px;
-        }}
-        .grid-item .symbol {{
-            font-size: 1.2em;
-        }}
-        .grid-item .name {{
-            font-size: 0.6em;
-        }}
-        .tooltiptext {{
-            width: 180px !important;
-            margin-left: -90px !important;
-            font-size: 0.8em !important;
-        }}
-    }}
-    
-    @media (max-width: 480px) {{
-        .grid-container {{
-            grid-template-columns: repeat({min(max_col, 6)}, 1fr);
-            gap: 2px;
-        }}
-        .grid-item {{
-            height: 60px;
-            padding: 3px;
-        }}
-        .grid-item .symbol {{
-            font-size: 1em;
-        }}
-        .grid-item .name {{
-            font-size: 0.5em;
-        }}
-    }}
-    .grid-item {{
-        border: 1px solid #333;
-        border-radius: 5px;
-        padding: 10px;
-        text-align: center;
-        position: relative; /* Needed for the tooltip */
-        cursor: default;
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, opacity 0.3s ease-in-out;
-        height: 100px; /* Fixed height for alignment */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }}
-    .grid-item.filtered-out {{
-        opacity: 0.2;
-        transform: scale(0.9);
-    }}
-    .grid-item:hover {{
-        transform: scale(1.1);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        z-index: 10;
-    }}
-    .grid-item .symbol {{
-        font-size: 1.5em;
-        font-weight: bold;
-    }}
-    .grid-item .name {{
-        font-size: 0.7em;
-    }}
-    .grid-item .tooltiptext {{
-        visibility: hidden;
-        width: 220px;
-        background-color: #222;
-        color: #fff;
-        text-align: left;
-        border-radius: 6px;
-        padding: 10px;
-        position: absolute;
-        z-index: 1;
-        bottom: 115%; /* Position the tooltip above the item */
-        left: 50%;
-        margin-left: -110px; /* Use half of the width to center the tooltip */
-        opacity: 0;
-        transition: opacity 0.3s;
-    }}
-    .grid-item:hover .tooltiptext {{
-        visibility: visible;
-        opacity: 1;
-    }}
-    .tooltiptext p {{
-        margin: 5px 0;
-        font-size: 0.9em;
-    }}
-</style>
-
-<div class="grid-container">
-"""
-
-# Loop through the DataFrame and create an HTML element for each asset
-for _, asset in df.iterrows():
-    color = get_color_for_value(asset[color_metric], color_metric)
-    
-    # Check if this asset should be highlighted or dimmed based on filters
-    is_filtered_out = (
-        (selected_category != 'All' and asset['Category'] != selected_category) or
-        (search_term and not (
-            search_term.lower() in asset['Symbol'].lower() or 
-            search_term.lower() in asset['Name'].lower()
-        ))
-    )
-    
-    css_class = "grid-item filtered-out" if is_filtered_out else "grid-item"
-    
-    tooltip_html = f"""
-    <div class='tooltiptext'>
-        <p><strong>Name:</strong> {asset['Name']}</p>
-        <p><strong>Category:</strong> {asset['Category']}</p>
-        <hr style='border-color: #444;'>
-        <p><strong>Risk:</strong> {'⭐' * int(asset['Risk'])}{'⚫' * (10 - int(asset['Risk']))} ({asset['Risk']})</p>
-        <p><strong>Liquidity:</strong> {'💧' * int(asset['Liquidity'])}{'⚫' * (10 - int(asset['Liquidity']))} ({asset['Liquidity']})</p>
-        <p><strong>Op Cost:</strong> {'💲' * int(asset['OpCost'])}{'⚫' * (10 - int(asset['OpCost']))} ({asset['OpCost']})</p>
-        <p><strong>Op Risk:</strong> {'⚠️' * int(asset['OpRisk'])}{'⚫' * (10 - int(asset['OpRisk']))} ({asset['OpRisk']})</p>
-    </div>
+    <div class="periodic-table-container">
     """
 
-    html_string += f"""
-    <div class="{css_class}" style="grid-column: {asset['GridCol']}; grid-row: {asset['GridRow']}; background-color: {color};">
-        <div class="symbol">{asset['Symbol']}</div>
-        <div class="name">{asset['Name']}</div>
-        {tooltip_html}
-    </div>
-    """
+    # Loop through the DataFrame and create an HTML element for each asset
+    for _, asset in df.iterrows():
+        color = get_color_for_value(asset[color_metric], color_metric)
+        
+        # Check if this asset should be highlighted or dimmed based on filters
+        is_filtered_out = (
+            (selected_category != 'All' and asset['Category'] != selected_category) or
+            (search_term and not (
+                search_term.lower() in asset['Symbol'].lower() or 
+                search_term.lower() in asset['Name'].lower()
+            ))
+        )
+        
+        css_class = "asset-element dimmed" if is_filtered_out else "asset-element"
+        
+        # Create tooltip content with better formatting
+        tooltip_content = f"""
+        <div class='tooltip-content'>
+            <strong>{asset['Name']}</strong><br/>
+            Category: {asset['Category']}<br/>
+            Risk: {asset['Risk']}/10 | Liquidity: {asset['Liquidity']}/10<br/>
+            Op Cost: {asset['OpCost']}/10 | Op Risk: {asset['OpRisk']}/10
+        </div>
+        """
 
-html_string += "</div>"
+        html_string += f"""
+        <div class="{css_class}" style="grid-column: {asset['GridCol']}; grid-row: {asset['GridRow']}; background-color: {color};">
+            <div class="asset-symbol">{asset['Symbol']}</div>
+            <div class="asset-name">{asset['Name']}</div>
+            {tooltip_content}
+        </div>
+        """
 
-# Render the final HTML in Streamlit
-st.markdown(html_string, unsafe_allow_html=True)
+    html_string += "</div>"
+
+    # Render the final HTML in Streamlit
+    st.markdown(html_string, unsafe_allow_html=True)
+    
+    except Exception as e:
+        # Fallback: Use Streamlit native components if HTML fails
+        st.error(f"HTML rendering failed: {str(e)}")
+        st.warning("Falling back to native Streamlit components...")
+        force_fallback = True
+
+if force_fallback:
+    # Create fallback using Streamlit columns and containers
+    st.subheader("🧪 Asset Overview (Fallback Mode)")
+    
+    # Group assets by row for better display
+    for row in range(1, max_row + 1):
+        row_assets = df[df['GridRow'] == row].sort_values('GridCol')
+        if len(row_assets) > 0:
+            cols = st.columns(len(row_assets))
+            for idx, (_, asset) in enumerate(row_assets.iterrows()):
+                color = get_color_for_value(asset[color_metric], color_metric)
+                
+                # Check if this asset should be highlighted or dimmed based on filters
+                is_filtered_out = (
+                    (selected_category != 'All' and asset['Category'] != selected_category) or
+                    (search_term and not (
+                        search_term.lower() in asset['Symbol'].lower() or 
+                        search_term.lower() in asset['Name'].lower()
+                    ))
+                )
+                
+                opacity = "0.3" if is_filtered_out else "1.0"
+                
+                with cols[idx]:
+                    st.markdown(f"""
+                    <div style="
+                        background-color: {color}; 
+                        padding: 10px; 
+                        border-radius: 5px; 
+                        text-align: center;
+                        border: 1px solid #333;
+                        margin: 2px;
+                        opacity: {opacity};
+                        transition: opacity 0.3s ease;
+                    ">
+                        <strong style="font-size: 1.2em;">{asset['Symbol']}</strong><br/>
+                        <small>{asset['Name']}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Show details on hover (using expander as fallback)
+                    with st.expander(f"Details: {asset['Symbol']}"):
+                        st.write(f"**Name:** {asset['Name']}")
+                        st.write(f"**Category:** {asset['Category']}")
+                        st.write(f"**Risk:** {asset['Risk']}/10")
+                        st.write(f"**Liquidity:** {asset['Liquidity']}/10")
+                        st.write(f"**Op Cost:** {asset['OpCost']}/10")
+                        st.write(f"**Op Risk:** {asset['OpRisk']}/10")
 
 # --- Asset Comparison Section ---
 st.markdown("---")
