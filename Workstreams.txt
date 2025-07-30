@@ -1,0 +1,332 @@
+
+
+Processing Value Streams with underlying processes
+
+Net Asset Value (NAV) Calculation
+
+1.  Capstock processing
+2.  NAV Calculaton and Publication
+3.  Income Equalisation
+4.  Month End Close of business Performance NAV for intraday funds
+5.  Fixed Income Fund  -yield calculation and publication
+6.  Distributions Calculations
+7.  Rebates
+8.  Swing Pricing
+9.  NAV Tax Calculations
+
+Portfolio Valuation
+
+1.  Exchange Listed Securities
+2.  FX Rates
+3.  Loans
+4.  Over the Counter Securities
+5.  Fund
+
+Special Portfolio Valuation
+
+1.  Vendor FVP
+2.  Instructed FVP / Client Direct
+
+Income Accounting
+
+1.  Cash Accural
+2.  Fixed Income Accural
+3.  Dividend Income (capture and processing)
+4.  OTC Income
+5.  Sec Lending Income Accural 
+
+Trade Capture
+
+1.  Cash
+2.  Investor Subs and Reds
+3.  Exchange Listed Security
+4.  Fx Hedging
+5.  FX
+6.  Exchange Trades  Derivative
+7.  Loans
+8.  Unlisted Listed Security
+9.  Over the Counter Derivatives
+10.  Fund
+
+Reconciliation
+
+1.  Stock
+2.  Cash
+3.  Investor Subs and Reds
+4.  Exchange Listed Security
+5.  Fx Hedging
+6.  FX
+7.  Exchange Trades  Derivative
+8.  Loans
+9.  Unlisted Listed Security
+10.  Over the Counter Derivatives
+11.  Fund
+
+Corporate Actions Processing
+
+1.  Mandatory Corp Actions
+2.  Voluntary Corp Actions          
+
+Expense Accounting
+
+1.  Performance Fees
+2.  Budgets
+3.  Invoice Mgt
+4.  Rate Cards
+5.  Rebates
+
+Expense Reporting
+
+1.  Other Ongoing Cost calculation
+2.  Total Expense Ratio Reporting
+3.  Fund / Client be-spoke fund fee calculations which are not supported via core fund accounting and expense platform
+
+Tax Accounting
+
+1.  Tax Reclaim Income Capture
+2.  Emerging Markets CGT Accural and Capture
+3.  Withholding Tax Accural
+
+Tax Reporting
+
+1.  German Tax Reporting
+2.  Austrian Tax Reporting
+3.  Belgian Tax
+4.  K1 / PFIC Reporting
+
+Financial Reporting
+
+1.  Provision of annual and semi-annual financial statements
+2.  Produce financial statements to GAAP, IFRS and IAS standards as required
+3.  Prepare and file fund regulatory reporting, as instructed by the fund and fund manager
+
+New Business and Lost Business
+
+1.  Fund Setups
+2.  Project Management
+3.  Document review
+4.  Data Review
+
+Customized Reporting
+
+1.  Mark to Market & Liquidity Reporting for  Low Volatility NAV funds
+2.  ESMA Money Market Fund Returns
+3.  NCA Daily MMF Characteristics Reporting
+4.  Solvency II – Insurance Clients
+5.  AIFMD Annex IV Reporting
+6.  MiFIR transaction reporting
+7.  Dutch Regulatory Reporting
+8.  "Fund / Client be-spoke
+9.  Reporting"
+10.  VAG
+11.  UK Reporting Regime
+
+Processing Value Streams with underlying applications
+
+Investor Trade flow - Capstock = Apps 2
+
+1.  MultiFond and ICON
+2.  Global Invest One (GIO)
+
+Expenses - Apps 3
+
+1.  Global Invest One (GIO)
+2.  Broadridge – Revport
+3.  Xceptor
+
+Transaction Processing - Apps 6
+
+1.  GIO
+2.  T-Hub
+3.  Omnium
+4.  Murex
+5.  AIP
+6.  Fund Master
+
+Reconciliations - App 4
+
+1.  GIO
+2.  TMLP
+3.  Xceptor
+4.  Fund Master
+5.  Omnium
+
+Fund Events - Corp Action - Apps 3
+
+7.  GIO
+8.  E-HUB
+9.  CARD
+
+Security Pricing - Apps 4
+
+1.  POP
+2.  AIP
+3.  Vendor FVP App
+4.  EMS
+
+Fund Valuation, unitized and published - Apps 4
+
+1.  INATE
+2.  EMS
+3.  OWM
+4.  NAVCOM
+
+Data And Reporting – Apps 5
+
+1.  Passport PRFA
+    MR Reporting
+2.  GIO OLE Spectre
+3.  EUC
+4.  Xceptor
+
+#Capital Portfolio – USD 26m – 8m 2025
+
+PROJECT_NAME
+
+BRS_CLASSIFICATION
+
+Total
+
+2025
+
+Value Stream
+
+FA - GIO Off-Mainframe Initiative
+
+Rock
+
+Multiple
+
+Portfolio Analytics & Compliance (PLX) - Migration of MIG21 (MGF)
+
+Sand
+
+FA Workflow
+
+Entitlements (EHub) - Announcement Feed
+
+Sand
+
+Events Corp Actions
+
+Upstream Enablement - FACP
+
+Sand
+
+Trade Capture
+
+GFS Data Mesh
+
+Sand
+
+Reporting
+
+FACT - E2E FA Recs Transformation
+
+Sand
+
+Reconciliation
+
+Control Center Upgrade
+
+Sand
+
+FA Workflow
+
+Central Bank of Ireland Strategic Reporting
+
+Sand
+
+Reporting
+
+Semi-Liquid  Enhancements
+
+Sand
+
+New Product
+
+ETF Strategic Growth Initiative
+
+Sand
+
+ETF Growth
+
+TLMP FA Strategic Data Feed Build
+
+Sand
+
+Reconciliation
+
+#Identified Gaps
+
+Net Asset Value (NAV) Calculation
+
+-   Swing Pricing
+
+-   Swing price thresholds
+-   Applying different swing factors to the Fund depending on the size of the investor flow
+-   Artemis have asked if we have the ability to apply different swing rates depending on the size of the Appro/Expro?
+-   So if the deal is between: 1% and 3% apply a factor of X%, 3% and 5% apply Y%., Over 5% apply Z%
+
+-   NDC Automation
+
+-   Provide accurate Swing rates, with flexibility to deal with transaction based & MV based charges (eg: fixed vs variable) on a range of assets, as well as standardising
+-   End to End Process Reviews - Are there are quick wins or new functionality in GIO / other systems
+-   Bond maturity limitations - Ability for GIO to be able to mature at different rates other than 100
+-   Bond enhancements - Wide ranging enhancements to bond limitation
+-   Dummy Lines - Strategic solution within GIO
+-   Accounting Interfaces to GIO - Link Yardi & Investran to GIO
+
+Special Portfolio Valuation
+
+-   Fair Value Processes
+-   Clients provide Client Directed Fair Value prices which are currently consumed and played back to clients manually, this is a non-scalable and risky solution, around one of the most risky items we have
+
+Income accounting
+
+-   REIT classification/Special Dividend/Capital Reduction - better accounting of reclassification of income/capital events with respect to SORP and IFRS regulation
+
+Trade Capture
+
+-   Trades - Standardization of trade blotters
+-   Transaction Tax flags - Transaction tax flags – can this be accurately reflected in the security static data – thus removing the requirement for NBaT to correctly identify where it should be applied
+
+Reconciliation
+
+-   Reclaims reconciliation
+-   Harmonise Custody Accounts - Single Custody Account to remove manual cash transfers & breaks
+
+New Business and Lost Business
+
+-   Merger calculations- would be good if we had the ability to load everything from the terminating fund into the receiving fund at the press of a button.
+
+Expense Accounting
+
+-   Fee/Expense Calculation - Enhance ability to put together complex fee calculations that are not supported by existing GIO functionality
+-   OCF Capping.
+-   Umbrella Fees
+
+Tax
+
+-   CGT - Appreciate this is currently in scope but will help be a NT offering and removal of MACROS for other clients
+-   Taxation Linkages - Better links between FA & Custody to facilitate accurate tax tables and tax treatment
+
+Customised Reporting
+
+-   Reporting enhancements - Improve PRFA capability to allow calculation as well as data provision
+-   Regulatory Reporting- Enhance & support regulatory reporting requirements within FA
+-   MBOR/IBOR - Be able to complete Performance NAVs and XD NAVS
+-   Income Forecasting - Produce income projections for the fund Manager
+-   GIO to PACE Upgrade - Remove the need to MR data to be used for Performance
+-   FAILs enhancements - Reporting is very manual and time consuming at present with data extraction and manipulation by the Risk partner. FA are aware that TA have enhanced reporting capabilities from the system which are not currently available for FA
+
+Client Change
+
+1.  Fund Change – 37%
+2.  Reporting Change – 34%
+3.  Calculation enhangements – 12%
+4.  Expenses 10%
+5.  Tranaction Capture 3.54%
+6.  Pricing – 1.77%
+
+

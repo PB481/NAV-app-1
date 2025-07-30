@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import math
+import json
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -51,6 +52,220 @@ asset_data = [
 
 # Convert the list of dictionaries to a Pandas DataFrame for easier manipulation
 df = pd.DataFrame(asset_data)
+
+# --- Operational Workstreams Data ---
+# Structure the workstreams data from the file
+workstreams_data = {
+    "NAV Calculation": {
+        "processes": [
+            "Capstock processing", "NAV Calculation and Publication", "Income Equalisation",
+            "Month End Close of business Performance NAV for intraday funds", 
+            "Fixed Income Fund - yield calculation and publication", "Distributions Calculations",
+            "Rebates", "Swing Pricing", "NAV Tax Calculations"
+        ],
+        "applications": ["MultiFond", "ICON", "Global Invest One (GIO)", "INATE", "EMS", "OWM", "NAVCOM"],
+        "complexity": 9, "operational_risk": 8, "automation": 6, "client_impact": 9,
+        "row": 1, "col": 1
+    },
+    "Portfolio Valuation": {
+        "processes": [
+            "Exchange Listed Securities", "FX Rates", "Loans", "Over the Counter Securities", "Fund"
+        ],
+        "applications": ["POP", "AIP", "Vendor FVP App", "EMS"],
+        "complexity": 7, "operational_risk": 7, "automation": 7, "client_impact": 8,
+        "row": 1, "col": 2
+    },
+    "Special Portfolio Valuation": {
+        "processes": ["Vendor FVP", "Instructed FVP / Client Direct"],
+        "applications": ["Vendor FVP App", "EMS"],
+        "complexity": 8, "operational_risk": 9, "automation": 4, "client_impact": 7,
+        "row": 1, "col": 3
+    },
+    "Income Accounting": {
+        "processes": [
+            "Cash Accrual", "Fixed Income Accrual", "Dividend Income (capture and processing)",
+            "OTC Income", "Sec Lending Income Accrual"
+        ],
+        "applications": ["GIO", "Fund Master"],
+        "complexity": 6, "operational_risk": 6, "automation": 7, "client_impact": 6,
+        "row": 2, "col": 1
+    },
+    "Trade Capture": {
+        "processes": [
+            "Cash", "Investor Subs and Reds", "Exchange Listed Security", "Fx Hedging",
+            "FX", "Exchange Trades Derivative", "Loans", "Unlisted Listed Security",
+            "Over the Counter Derivatives", "Fund"
+        ],
+        "applications": ["GIO", "T-Hub", "Omnium", "Murex", "AIP", "Fund Master"],
+        "complexity": 8, "operational_risk": 7, "automation": 8, "client_impact": 8,
+        "row": 2, "col": 2
+    },
+    "Reconciliation": {
+        "processes": [
+            "Stock", "Cash", "Investor Subs and Reds", "Exchange Listed Security",
+            "Fx Hedging", "FX", "Exchange Trades Derivative", "Loans",
+            "Unlisted Listed Security", "Over the Counter Derivatives", "Fund"
+        ],
+        "applications": ["GIO", "TMLP", "Xceptor", "Fund Master", "Omnium"],
+        "complexity": 7, "operational_risk": 8, "automation": 6, "client_impact": 7,
+        "row": 2, "col": 3
+    },
+    "Corporate Actions": {
+        "processes": ["Mandatory Corp Actions", "Voluntary Corp Actions"],
+        "applications": ["GIO", "E-HUB", "CARD"],
+        "complexity": 6, "operational_risk": 6, "automation": 7, "client_impact": 6,
+        "row": 2, "col": 4
+    },
+    "Expense Accounting": {
+        "processes": ["Performance Fees", "Budgets", "Invoice Mgt", "Rate Cards", "Rebates"],
+        "applications": ["Global Invest One (GIO)", "Broadridge – Revport", "Xceptor"],
+        "complexity": 5, "operational_risk": 5, "automation": 6, "client_impact": 5,
+        "row": 3, "col": 1
+    },
+    "Expense Reporting": {
+        "processes": [
+            "Other Ongoing Cost calculation", "Total Expense Ratio Reporting",
+            "Fund / Client be-spoke fund fee calculations"
+        ],
+        "applications": ["Passport PRFA", "GIO OLE Spectre", "EUC"],
+        "complexity": 6, "operational_risk": 5, "automation": 7, "client_impact": 6,
+        "row": 3, "col": 2
+    },
+    "Tax Accounting": {
+        "processes": [
+            "Tax Reclaim Income Capture", "Emerging Markets CGT Accrual and Capture",
+            "Withholding Tax Accrual"
+        ],
+        "applications": ["GIO", "Fund Master"],
+        "complexity": 7, "operational_risk": 7, "automation": 5, "client_impact": 7,
+        "row": 3, "col": 3
+    },
+    "Tax Reporting": {
+        "processes": [
+            "German Tax Reporting", "Austrian Tax Reporting", "Belgian Tax", "K1 / PFIC Reporting"
+        ],
+        "applications": ["Passport PRFA", "GIO OLE Spectre"],
+        "complexity": 8, "operational_risk": 6, "automation": 6, "client_impact": 8,
+        "row": 3, "col": 4
+    },
+    "Financial Reporting": {
+        "processes": [
+            "Annual and semi-annual financial statements",
+            "GAAP, IFRS and IAS standards compliance",
+            "Fund regulatory reporting"
+        ],
+        "applications": ["Passport PRFA", "EUC", "Xceptor"],
+        "complexity": 7, "operational_risk": 6, "automation": 7, "client_impact": 9,
+        "row": 3, "col": 5
+    },
+    "New Business": {
+        "processes": ["Fund Setups", "Project Management", "Document review", "Data Review"],
+        "applications": ["GIO", "Fund Master", "EUC"],
+        "complexity": 6, "operational_risk": 5, "automation": 5, "client_impact": 8,
+        "row": 4, "col": 1
+    },
+    "Customized Reporting": {
+        "processes": [
+            "Mark to Market & Liquidity Reporting", "ESMA Money Market Fund Returns",
+            "AIFMD Annex IV Reporting", "MiFIR transaction reporting", "Dutch Regulatory Reporting"
+        ],
+        "applications": ["Passport PRFA", "GIO OLE Spectre", "EUC", "Xceptor"],
+        "complexity": 8, "operational_risk": 7, "automation": 6, "client_impact": 8,
+        "row": 4, "col": 2
+    }
+}
+
+# Capital Portfolio Projects
+capital_projects = {
+    "FA - GIO Off-Mainframe Initiative": {
+        "classification": "Rock", "value_stream": "Multiple", "budget": "High"
+    },
+    "Portfolio Analytics & Compliance (PLX)": {
+        "classification": "Sand", "value_stream": "FA Workflow", "budget": "Medium"
+    },
+    "Entitlements (EHub) - Announcement Feed": {
+        "classification": "Sand", "value_stream": "Corporate Actions", "budget": "Medium"
+    },
+    "Upstream Enablement - FACP": {
+        "classification": "Sand", "value_stream": "Trade Capture", "budget": "Medium"
+    },
+    "GFS Data Mesh": {
+        "classification": "Sand", "value_stream": "Customized Reporting", "budget": "Medium"
+    },
+    "FACT - E2E FA Recs Transformation": {
+        "classification": "Sand", "value_stream": "Reconciliation", "budget": "High"
+    },
+    "Control Center Upgrade": {
+        "classification": "Sand", "value_stream": "FA Workflow", "budget": "Medium"
+    },
+    "Central Bank of Ireland Strategic Reporting": {
+        "classification": "Sand", "value_stream": "Financial Reporting", "budget": "Medium"
+    },
+    "Semi-Liquid Enhancements": {
+        "classification": "Sand", "value_stream": "NAV Calculation", "budget": "Medium"
+    },
+    "ETF Strategic Growth Initiative": {
+        "classification": "Sand", "value_stream": "New Business", "budget": "High"
+    },
+    "TLMP FA Strategic Data Feed Build": {
+        "classification": "Sand", "value_stream": "Reconciliation", "budget": "Medium"
+    }
+}
+
+# Identified Gaps mapped to workstreams
+identified_gaps = {
+    "NAV Calculation": [
+        "Swing Pricing - Enhanced threshold and factor capabilities",
+        "NDC Automation - Provide accurate swing rates with flexibility",
+        "Bond maturity limitations - Ability for GIO to mature at different rates",
+        "Dummy Lines - Strategic solution within GIO",
+        "Accounting Interfaces to GIO - Link Yardi & Investran"
+    ],
+    "Special Portfolio Valuation": [
+        "Fair Value Processes - Automated client directed fair value price consumption"
+    ],
+    "Income Accounting": [
+        "REIT classification/Special Dividend/Capital Reduction - Better accounting of reclassification"
+    ],
+    "Trade Capture": [
+        "Trades - Standardization of trade blotters",
+        "Transaction Tax flags - Accurate reflection in security static data"
+    ],
+    "Reconciliation": [
+        "Reclaims reconciliation",
+        "Harmonise Custody Accounts - Single custody account solution"
+    ],
+    "New Business": [
+        "Merger calculations - Automated fund merger capabilities"
+    ],
+    "Expense Accounting": [
+        "Fee/Expense Calculation - Complex fee calculations not supported by GIO",
+        "OCF Capping capabilities",
+        "Umbrella Fees support"
+    ],
+    "Tax Accounting": [
+        "CGT - Enhanced CGT processing and MACRO removal",
+        "Taxation Linkages - Better links between FA & Custody"
+    ],
+    "Customized Reporting": [
+        "Reporting enhancements - Improve PRFA calculation capabilities",
+        "Regulatory Reporting - Enhanced regulatory reporting within FA",
+        "MBOR/IBOR - Performance NAVs and XD NAVs completion",
+        "Income Forecasting - Produce income projections",
+        "GIO to PACE Upgrade - Remove MR data dependency",
+        "FAILs enhancements - Enhanced reporting capabilities"
+    ]
+}
+
+# Client Change Distribution
+client_change_data = {
+    "Fund Change": 37.0,
+    "Reporting Change": 34.0,
+    "Calculation Enhancements": 12.0,
+    "Expenses": 10.0,
+    "Transaction Capture": 3.54,
+    "Pricing": 1.77
+}
 
 # --- Helper Functions ---
 
@@ -256,6 +471,271 @@ for category in sorted(categories):
                             st.metric("Op Risk", f"{asset['OpRisk']}/10", help="Operational Risk")
         
         st.markdown("---")  # Separator between categories
+
+# --- Operational Workstreams Periodic Table ---
+st.markdown("---")
+st.header("⚙️ Operational Workstreams - Fund Administration Periodic Table")
+
+# Add workstream controls
+col1, col2 = st.columns(2)
+with col1:
+    workstream_metric = st.selectbox(
+        "Color Code Workstreams By:",
+        options=['complexity', 'operational_risk', 'automation', 'client_impact'],
+        format_func=lambda x: {
+            'complexity': 'Process Complexity',
+            'operational_risk': 'Operational Risk',
+            'automation': 'Automation Level',
+            'client_impact': 'Client Impact'
+        }[x]
+    )
+
+with col2:
+    show_projects = st.checkbox("Show Capital Projects", value=True)
+
+# Helper function for workstream colors
+def get_workstream_color(value, metric):
+    val_norm = (value - 1) / 9.0
+    if metric == 'automation':
+        # Green scale for automation: low automation is reddish, high is greenish
+        red = int(255 * (1 - val_norm))
+        green = int(255 * val_norm)
+        blue = 40
+    else:
+        # Red scale for complexity/risk/impact: low is greenish, high is reddish
+        red = int(255 * val_norm)
+        green = int(255 * (1 - val_norm))
+        blue = 40
+    return f"rgb({red}, {green}, {blue})"
+
+# Display workstreams in organized layout
+st.subheader("🔧 Fund Administration Value Streams")
+
+# Group workstreams by row
+max_ws_row = max(ws['row'] for ws in workstreams_data.values())
+max_ws_col = max(ws['col'] for ws in workstreams_data.values())
+
+for row in range(1, max_ws_row + 1):
+    row_workstreams = {name: data for name, data in workstreams_data.items() if data['row'] == row}
+    
+    if row_workstreams:
+        # Create columns for this row
+        cols = st.columns(max_ws_col)
+        
+        for name, workstream in row_workstreams.items():
+            color = get_workstream_color(workstream[workstream_metric], workstream_metric)
+            col_idx = workstream['col'] - 1
+            
+            with cols[col_idx]:
+                # Check if there are capital projects for this workstream
+                related_projects = [proj for proj, details in capital_projects.items() 
+                                  if details['value_stream'] == name or details['value_stream'] in name]
+                
+                project_indicator = "🏗️" if related_projects and show_projects else ""
+                
+                st.markdown(f"""
+                <div style="
+                    background-color: {color}; 
+                    padding: 12px; 
+                    border-radius: 8px; 
+                    text-align: center;
+                    border: 2px solid #333;
+                    margin: 3px;
+                    height: 120px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                ">
+                    <strong style="font-size: 1.1em; margin-bottom: 4px;">{name} {project_indicator}</strong><br/>
+                    <small style="font-size: 0.6em; line-height: 1.1;">{workstream_metric.replace('_', ' ').title()}: {workstream[workstream_metric]}/10</small>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Expandable details
+                with st.expander(f"📊 {name} Details"):
+                    st.write(f"**Processes ({len(workstream['processes'])}):**")
+                    for process in workstream['processes']:
+                        st.write(f"• {process}")
+                    
+                    st.write(f"**Applications ({len(workstream['applications'])}):**")
+                    for app in workstream['applications']:
+                        st.write(f"• {app}")
+                    
+                    # Metrics
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Complexity", f"{workstream['complexity']}/10")
+                        st.metric("Automation", f"{workstream['automation']}/10")
+                    with col2:
+                        st.metric("Op Risk", f"{workstream['operational_risk']}/10")
+                        st.metric("Client Impact", f"{workstream['client_impact']}/10")
+                    
+                    # Show related projects
+                    if related_projects:
+                        st.write("**Related Capital Projects:**")
+                        for proj in related_projects:
+                            proj_details = capital_projects[proj]
+                            st.write(f"• {proj} ({proj_details['classification']}) - {proj_details['budget']} Budget")
+                    
+                    # Show identified gaps
+                    if name in identified_gaps:
+                        st.write("**Identified Gaps:**")
+                        for gap in identified_gaps[name]:
+                            st.write(f"• {gap}")
+
+# --- Capital Portfolio Analysis ---
+st.markdown("---")
+st.subheader("💰 Capital Portfolio - USD 26M (2025)")
+
+# Project classification analysis
+col1, col2 = st.columns(2)
+
+with col1:
+    st.write("**Projects by Classification**")
+    classification_counts = {}
+    for proj, details in capital_projects.items():
+        cls = details['classification']
+        classification_counts[cls] = classification_counts.get(cls, 0) + 1
+    
+    st.bar_chart(pd.Series(classification_counts))
+
+with col2:
+    st.write("**Projects by Value Stream**")
+    valuestream_counts = {}
+    for proj, details in capital_projects.items():
+        vs = details['value_stream']
+        valuestream_counts[vs] = valuestream_counts.get(vs, 0) + 1
+    
+    # Display as metrics
+    for vs, count in sorted(valuestream_counts.items()):
+        st.metric(vs, f"{count} project{'s' if count > 1 else ''}")
+
+# Detailed projects table
+st.write("**Capital Portfolio Projects**")
+projects_df = pd.DataFrame([
+    {
+        'Project': proj,
+        'Classification': details['classification'],
+        'Value Stream': details['value_stream'],
+        'Budget': details['budget']
+    }
+    for proj, details in capital_projects.items()
+])
+st.dataframe(projects_df, use_container_width=True)
+
+# --- Client Change Requests Widget ---
+st.markdown("---")
+st.subheader("📋 Client Change Request Distribution")
+
+# Initialize client change data in session state
+if 'client_changes' not in st.session_state:
+    st.session_state.client_changes = client_change_data.copy()
+
+st.write("**Edit the distribution percentages for client change requests:**")
+
+# Create editable widget for client changes
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    total_percentage = 0
+    updated_changes = {}
+    
+    for change_type, current_value in st.session_state.client_changes.items():
+        new_value = st.number_input(
+            f"{change_type} (%)",
+            min_value=0.0,
+            max_value=100.0,
+            value=current_value,
+            step=0.1,
+            key=f"change_{change_type.replace(' ', '_')}"
+        )
+        updated_changes[change_type] = new_value
+        total_percentage += new_value
+    
+    # Update session state
+    st.session_state.client_changes = updated_changes
+    
+    # Validation
+    if abs(total_percentage - 100.0) > 0.1:
+        st.warning(f"⚠️ Total percentage: {total_percentage:.1f}%. Consider adjusting to 100%.")
+    else:
+        st.success("✅ Total percentage equals 100%!")
+
+with col2:
+    st.write("**Current Distribution:**")
+    for change_type, value in st.session_state.client_changes.items():
+        st.metric(change_type, f"{value:.1f}%")
+    
+    # Action buttons
+    if st.button("🔄 Reset to Original"):
+        st.session_state.client_changes = client_change_data.copy()
+        st.rerun()
+    
+    if st.button("⚖️ Redistribute Equally"):
+        equal_value = 100.0 / len(st.session_state.client_changes)
+        for change_type in st.session_state.client_changes:
+            st.session_state.client_changes[change_type] = equal_value
+        st.rerun()
+
+# Visualization
+st.write("**Client Change Distribution Visualization:**")
+changes_df = pd.DataFrame([
+    {'Change Type': change_type, 'Percentage': value}
+    for change_type, value in st.session_state.client_changes.items()
+])
+
+col1, col2 = st.columns(2)
+with col1:
+    st.bar_chart(changes_df.set_index('Change Type')['Percentage'])
+
+with col2:
+    # Create a simple pie chart using native streamlit
+    st.write("**Top Change Categories:**")
+    sorted_changes = sorted(st.session_state.client_changes.items(), key=lambda x: x[1], reverse=True)
+    for i, (change_type, value) in enumerate(sorted_changes[:3]):
+        st.metric(f"{i+1}. {change_type}", f"{value:.1f}%")
+
+# Export client changes
+st.write("**Export Client Change Data:**")
+changes_csv = changes_df.to_csv(index=False)
+st.download_button(
+    label="📁 Export Client Changes CSV",
+    data=changes_csv,
+    file_name="client_change_distribution.csv",
+    mime="text/csv"
+)
+
+# --- Gap Analysis Summary ---
+st.markdown("---")
+st.subheader("🔍 Identified Gaps Summary")
+
+total_gaps = sum(len(gaps) for gaps in identified_gaps.values())
+st.metric("Total Identified Gaps", total_gaps)
+
+# Gaps by workstream
+gaps_by_workstream = {
+    workstream: len(gaps) for workstream, gaps in identified_gaps.items()
+}
+
+col1, col2 = st.columns(2)
+with col1:
+    st.write("**Gaps by Workstream:**")
+    st.bar_chart(pd.Series(gaps_by_workstream))
+
+with col2:
+    st.write("**Priority Workstreams (Most Gaps):**")
+    sorted_gaps = sorted(gaps_by_workstream.items(), key=lambda x: x[1], reverse=True)
+    for workstream, gap_count in sorted_gaps[:5]:
+        st.metric(workstream, f"{gap_count} gaps")
+
+# Detailed gaps
+st.write("**All Identified Gaps by Workstream:**")
+for workstream, gaps in identified_gaps.items():
+    with st.expander(f"{workstream} ({len(gaps)} gaps)"):
+        for i, gap in enumerate(gaps, 1):
+            st.write(f"{i}. {gap}")
 
 # --- Asset Comparison Section ---
 st.markdown("---")
