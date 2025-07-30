@@ -127,6 +127,32 @@ def load_real_financial_data():
 # Load real data
 real_assets_df, real_funds_df = load_real_financial_data()
 
+# --- Load Operational Data ---
+@st.cache_data
+def load_operational_data():
+    """Load and process operational fund data from CSV files"""
+    try:
+        # Load operational data files
+        nav_df = pd.read_csv('datapoints samples/genie_fund_daily_nav.csv')
+        characteristics_df = pd.read_csv('datapoints samples/genie_fund_characteristics.csv')
+        holdings_df = pd.read_csv('datapoints samples/genie_custody_holdings.csv')
+        
+        # Convert date columns to datetime
+        nav_df['nav_date'] = pd.to_datetime(nav_df['nav_date'])
+        characteristics_df['inception_date'] = pd.to_datetime(characteristics_df['inception_date'])
+        holdings_df['snapshot_date'] = pd.to_datetime(holdings_df['snapshot_date'])
+        
+        return nav_df, characteristics_df, holdings_df
+    except FileNotFoundError:
+        st.warning("Operational data files not found in 'datapoints samples' folder.")
+        return None, None, None
+    except Exception as e:
+        st.error(f"Error loading operational data: {str(e)}")
+        return None, None, None
+
+# Load operational data
+nav_data, fund_characteristics, custody_holdings = load_operational_data()
+
 # --- Operational Workstreams Data ---
 # Structure the workstreams data from the file
 workstreams_data = {
@@ -1408,6 +1434,250 @@ if real_assets_df is not None and real_funds_df is not None:
                 barmode='group'
             )
             st.plotly_chart(fig_risk_dist, use_container_width=True)
+
+# --- Operational Data Analysis ---
+if nav_data is not None and fund_characteristics is not None and custody_holdings is not None:
+    st.markdown("---")
+    st.header("🏢 Operational Fund Data Analysis")
+    st.info("Real operational data from fund administration systems including NAV, holdings, and fund characteristics.")
+    
+    # Create tabs for operational data analysis
+    op_tab_nav, op_tab_holdings, op_tab_characteristics, op_tab_dashboard = st.tabs([
+        "📈 NAV Performance", "📊 Portfolio Holdings", "🏛️ Fund Characteristics", "📋 Operations Dashboard"
+    ])
+    
+    with op_tab_nav:
+        st.subheader("NAV Performance Analysis")
+        
+        if PLOTLY_AVAILABLE:
+            # NAV time series analysis
+            st.write("**Daily NAV Performance by Fund**")
+            
+            # Create NAV time series chart
+            fig_nav = px.line(
+                nav_data,
+                x='nav_date',
+                y='nav_per_share',
+                color='fund_id',
+                title="Daily NAV Per Share - All Funds",
+                labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share', 'fund_id': 'Fund ID'}
+            )
+            fig_nav.update_layout(height=500)
+            st.plotly_chart(fig_nav, use_container_width=True)
+            
+            # NAV statistics
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**NAV Performance Metrics**")
+                nav_stats = nav_data.groupby('fund_id').agg({
+                    'nav_per_share': ['min', 'max', 'mean', 'std'],
+                    'total_nav': ['mean'],
+                    'total_shares_outstanding': ['mean']
+                }).round(4)
+                nav_stats.columns = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility', 'Avg Total NAV', 'Avg Shares Outstanding']
+                st.dataframe(nav_stats, use_container_width=True)
+            
+            with col2:
+                st.write("**NAV Volatility Analysis**")
+                fig_vol = px.box(
+                    nav_data,
+                    x='fund_id',
+                    y='nav_per_share',
+                    title="NAV Per Share Distribution by Fund"
+                )
+                fig_vol.update_layout(height=400)
+                st.plotly_chart(fig_vol, use_container_width=True)
+        else:
+            st.write("**NAV Data Summary**")
+            st.dataframe(nav_data.head(10), use_container_width=True)
+    
+    with op_tab_holdings:
+        st.subheader("Portfolio Holdings Analysis")
+        
+        if PLOTLY_AVAILABLE:
+            # Holdings analysis
+            st.write("**Portfolio Composition by Asset Class**")
+            
+            # Aggregate holdings by asset class
+            holdings_summary = custody_holdings.groupby('asset_class').agg({
+                'market_value': 'sum',
+                'quantity': 'count',
+                'unrealized_gain_loss': 'sum'
+            }).reset_index()
+            
+            # Asset class pie chart
+            fig_holdings = px.pie(
+                holdings_summary,
+                values='market_value',
+                names='asset_class',
+                title="Portfolio Value by Asset Class",
+                hover_data=['quantity']
+            )
+            st.plotly_chart(fig_holdings, use_container_width=True)
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Holdings by Currency**")
+                currency_summary = custody_holdings.groupby('currency')['market_value'].sum().reset_index()
+                fig_currency = px.bar(
+                    currency_summary,
+                    x='currency',
+                    y='market_value',
+                    title="Total Holdings by Currency"
+                )
+                st.plotly_chart(fig_currency, use_container_width=True)
+            
+            with col2:
+                st.write("**P&L Analysis**")
+                pnl_summary = custody_holdings.groupby('asset_class')['unrealized_gain_loss'].sum().reset_index()
+                fig_pnl = px.bar(
+                    pnl_summary,
+                    x='asset_class',
+                    y='unrealized_gain_loss',
+                    title="Unrealized P&L by Asset Class",
+                    color='unrealized_gain_loss',
+                    color_continuous_scale='RdYlGn'
+                )
+                st.plotly_chart(fig_pnl, use_container_width=True)
+            
+            # Holdings detail table
+            st.write("**Holdings Detail**")
+            holdings_display = custody_holdings.copy()
+            holdings_display['market_value'] = holdings_display['market_value'].round(2)
+            holdings_display['unrealized_gain_loss'] = holdings_display['unrealized_gain_loss'].round(2)
+            st.dataframe(holdings_display, use_container_width=True, height=300)
+            
+        else:
+            st.write("**Holdings Data Summary**")
+            st.dataframe(custody_holdings.head(10), use_container_width=True)
+    
+    with op_tab_characteristics:
+        st.subheader("Fund Characteristics Analysis")
+        
+        if PLOTLY_AVAILABLE:
+            # Fund characteristics analysis
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Fund Type Distribution**")
+                fund_type_counts = fund_characteristics['fund_type'].value_counts().reset_index()
+                fund_type_counts.columns = ['Fund Type', 'Count']
+                fig_fund_types = px.pie(
+                    fund_type_counts,
+                    values='Count',
+                    names='Fund Type',
+                    title="Distribution of Fund Types"
+                )
+                st.plotly_chart(fig_fund_types, use_container_width=True)
+            
+            with col2:
+                st.write("**Legal Structure Distribution**")
+                structure_counts = fund_characteristics['legal_structure'].value_counts().reset_index()
+                structure_counts.columns = ['Legal Structure', 'Count']
+                fig_structures = px.bar(
+                    structure_counts,
+                    x='Legal Structure',
+                    y='Count',
+                    title="Legal Structure Distribution"
+                )
+                st.plotly_chart(fig_structures, use_container_width=True)
+            
+            # AUM analysis
+            st.write("**Assets Under Management Analysis**")
+            fig_aum = px.scatter(
+                fund_characteristics,
+                x='target_aum_min',
+                y='target_aum_max',
+                size='aum_current_estimate',
+                color='fund_type',
+                hover_name='fund_name',
+                title="Target AUM Range vs Current AUM Estimate",
+                labels={
+                    'target_aum_min': 'Target AUM Minimum',
+                    'target_aum_max': 'Target AUM Maximum',
+                    'aum_current_estimate': 'Current AUM Estimate'
+                }
+            )
+            fig_aum.update_layout(height=500)
+            st.plotly_chart(fig_aum, use_container_width=True)
+            
+            # Fund characteristics table
+            st.write("**Fund Characteristics Detail**")
+            chars_display = fund_characteristics.copy()
+            chars_display['aum_current_estimate'] = chars_display['aum_current_estimate'].round(2)
+            st.dataframe(chars_display, use_container_width=True)
+            
+        else:
+            st.write("**Fund Characteristics Summary**")
+            st.dataframe(fund_characteristics, use_container_width=True)
+    
+    with op_tab_dashboard:
+        st.subheader("Operations Dashboard")
+        
+        # Key metrics summary
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_funds = len(fund_characteristics)
+            st.metric("Total Funds", total_funds)
+        
+        with col2:
+            total_holdings = len(custody_holdings)
+            st.metric("Total Holdings", total_holdings)
+        
+        with col3:
+            total_aum = fund_characteristics['aum_current_estimate'].sum()
+            st.metric("Total AUM", f"${total_aum:,.0f}")
+        
+        with col4:
+            total_pnl = custody_holdings['unrealized_gain_loss'].sum()
+            st.metric("Total Unrealized P&L", f"${total_pnl:,.0f}")
+        
+        if PLOTLY_AVAILABLE:
+            # Operational risk indicators
+            st.write("**Operational Risk Indicators**")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Expense ratio analysis
+                fig_expense = px.histogram(
+                    fund_characteristics,
+                    x='expense_ratio_pct',
+                    title="Expense Ratio Distribution",
+                    nbins=10
+                )
+                st.plotly_chart(fig_expense, use_container_width=True)
+            
+            with col2:
+                # Fund age analysis
+                fund_characteristics['fund_age_years'] = (
+                    pd.Timestamp.now() - fund_characteristics['inception_date']
+                ).dt.days / 365.25
+                
+                fig_age = px.scatter(
+                    fund_characteristics,
+                    x='fund_age_years',
+                    y='aum_current_estimate',
+                    size='expense_ratio_pct',
+                    color='fund_type',
+                    title="Fund Age vs AUM",
+                    labels={'fund_age_years': 'Fund Age (Years)', 'aum_current_estimate': 'Current AUM'}
+                )
+                st.plotly_chart(fig_age, use_container_width=True)
+            
+            # Custodian and safekeeping analysis
+            st.write("**Custodian and Safekeeping Analysis**")
+            safekeeping_summary = custody_holdings.groupby('safekeeping_location')['market_value'].sum().reset_index()
+            fig_safekeeping = px.treemap(
+                safekeeping_summary,
+                path=['safekeeping_location'],
+                values='market_value',
+                title="Assets by Safekeeping Location"
+            )
+            st.plotly_chart(fig_safekeeping, use_container_width=True)
 
 # Asset data table for reference
 st.markdown("---")
