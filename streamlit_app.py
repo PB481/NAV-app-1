@@ -90,6 +90,8 @@ Each asset is positioned based on its characteristics and scored on four key met
 
 # --- Sidebar Controls ---
 st.sidebar.header("⚙️ Controls")
+
+# Color metric selector
 color_metric = st.sidebar.selectbox(
     "Color Code By:",
     options=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
@@ -101,8 +103,37 @@ color_metric = st.sidebar.selectbox(
     }[x]
 )
 
+# Category filter
+categories = ['All'] + sorted(df['Category'].unique().tolist())
+selected_category = st.sidebar.selectbox(
+    "Filter by Category:",
+    options=categories
+)
+
+# Search functionality
+search_term = st.sidebar.text_input(
+    "Search Assets:",
+    placeholder="Enter symbol or name..."
+)
+
+# Color scale legend
 st.sidebar.markdown("---")
-st.sidebar.header("Metric Definitions")
+st.sidebar.header("🎨 Color Scale")
+legend_html = """
+<div style='display: flex; flex-direction: column; gap: 10px;'>
+    <div style='display: flex; align-items: center; gap: 10px;'>
+        <div style='width: 100px; height: 20px; background: linear-gradient(to right, rgb(255,40,40), rgb(255,142,40), rgb(255,255,40), rgb(142,255,40), rgb(40,255,40)); border: 1px solid #ccc;'></div>
+        <span style='font-size: 12px;'>""" + ("Low → High Liquidity" if color_metric == 'Liquidity' else "Low → High " + color_metric) + """</span>
+    </div>
+    <div style='display: flex; justify-content: space-between; font-size: 10px; color: #666;'>
+        <span>1</span><span>3</span><span>5</span><span>7</span><span>10</span>
+    </div>
+</div>
+"""
+st.sidebar.markdown(legend_html, unsafe_allow_html=True)
+
+st.sidebar.markdown("---")
+st.sidebar.header("📊 Metric Definitions")
 st.sidebar.info(
     """
     - **Market Risk**: Potential for investment loss due to factors that affect the overall financial market (1=Low, 10=High).
@@ -112,6 +143,31 @@ st.sidebar.info(
     """
 )
 
+
+# --- Filter Data Based on User Selection ---
+
+# Apply category filter
+filtered_df = df.copy()
+if selected_category != 'All':
+    filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+
+# Apply search filter
+if search_term:
+    search_mask = (
+        filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
+        filtered_df['Name'].str.contains(search_term, case=False, na=False)
+    )
+    filtered_df = filtered_df[search_mask]
+
+# Display statistics
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Total Assets", len(df))
+with col2:
+    st.metric("Filtered Assets", len(filtered_df))
+with col3:
+    avg_metric_value = filtered_df[color_metric].mean() if len(filtered_df) > 0 else 0
+    st.metric(f"Avg {color_metric}", f"{avg_metric_value:.1f}")
 
 # --- Generate the Periodic Table using HTML and CSS ---
 
@@ -134,6 +190,46 @@ html_string = f"""
         width: 100%;
         margin-top: 20px;
     }}
+    
+    /* Responsive design for mobile and tablet */
+    @media (max-width: 768px) {{
+        .grid-container {{
+            grid-template-columns: repeat({min(max_col, 8)}, 1fr);
+            gap: 3px;
+        }}
+        .grid-item {{
+            height: 80px;
+            padding: 5px;
+        }}
+        .grid-item .symbol {{
+            font-size: 1.2em;
+        }}
+        .grid-item .name {{
+            font-size: 0.6em;
+        }}
+        .tooltiptext {{
+            width: 180px !important;
+            margin-left: -90px !important;
+            font-size: 0.8em !important;
+        }}
+    }}
+    
+    @media (max-width: 480px) {{
+        .grid-container {{
+            grid-template-columns: repeat({min(max_col, 6)}, 1fr);
+            gap: 2px;
+        }}
+        .grid-item {{
+            height: 60px;
+            padding: 3px;
+        }}
+        .grid-item .symbol {{
+            font-size: 1em;
+        }}
+        .grid-item .name {{
+            font-size: 0.5em;
+        }}
+    }}
     .grid-item {{
         border: 1px solid #333;
         border-radius: 5px;
@@ -141,12 +237,16 @@ html_string = f"""
         text-align: center;
         position: relative; /* Needed for the tooltip */
         cursor: default;
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, opacity 0.3s ease-in-out;
         height: 100px; /* Fixed height for alignment */
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+    }}
+    .grid-item.filtered-out {{
+        opacity: 0.2;
+        transform: scale(0.9);
     }}
     .grid-item:hover {{
         transform: scale(1.1);
@@ -193,6 +293,17 @@ html_string = f"""
 for _, asset in df.iterrows():
     color = get_color_for_value(asset[color_metric], color_metric)
     
+    # Check if this asset should be highlighted or dimmed based on filters
+    is_filtered_out = (
+        (selected_category != 'All' and asset['Category'] != selected_category) or
+        (search_term and not (
+            search_term.lower() in asset['Symbol'].lower() or 
+            search_term.lower() in asset['Name'].lower()
+        ))
+    )
+    
+    css_class = "grid-item filtered-out" if is_filtered_out else "grid-item"
+    
     tooltip_html = f"""
     <div class='tooltiptext'>
         <p><strong>Name:</strong> {asset['Name']}</p>
@@ -206,7 +317,7 @@ for _, asset in df.iterrows():
     """
 
     html_string += f"""
-    <div class="grid-item" style="grid-column: {asset['GridCol']}; grid-row: {asset['GridRow']}; background-color: {color};">
+    <div class="{css_class}" style="grid-column: {asset['GridCol']}; grid-row: {asset['GridRow']}; background-color: {color};">
         <div class="symbol">{asset['Symbol']}</div>
         <div class="name">{asset['Name']}</div>
         {tooltip_html}
@@ -217,3 +328,110 @@ html_string += "</div>"
 
 # Render the final HTML in Streamlit
 st.markdown(html_string, unsafe_allow_html=True)
+
+# --- Asset Comparison Section ---
+st.markdown("---")
+st.header("🔍 Asset Comparison")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    asset1 = st.selectbox(
+        "Select First Asset:",
+        options=df['Symbol'].tolist(),
+        format_func=lambda x: f"{x} - {df[df['Symbol']==x]['Name'].iloc[0]}"
+    )
+
+with col2:
+    asset2 = st.selectbox(
+        "Select Second Asset:",
+        options=df['Symbol'].tolist(),
+        format_func=lambda x: f"{x} - {df[df['Symbol']==x]['Name'].iloc[0]}",
+        index=1 if len(df) > 1 else 0
+    )
+
+if asset1 and asset2:
+    asset1_data = df[df['Symbol'] == asset1].iloc[0]
+    asset2_data = df[df['Symbol'] == asset2].iloc[0]
+    
+    # Create comparison chart
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    # Radar chart data
+    metrics = ['Risk', 'Liquidity', 'OpCost', 'OpRisk']
+    asset1_values = [asset1_data[metric] for metric in metrics]
+    asset2_values = [asset2_data[metric] for metric in metrics]
+    
+    # Create comparison table
+    comparison_df = pd.DataFrame({
+        'Metric': metrics,
+        f'{asset1} ({asset1_data["Name"]})': asset1_values,
+        f'{asset2} ({asset2_data["Name"]})': asset2_values,
+        'Difference': [asset2_values[i] - asset1_values[i] for i in range(len(metrics))]
+    })
+    
+    # Format the difference column with colors
+    def highlight_diff(val):
+        if val > 0:
+            return 'color: red'
+        elif val < 0:
+            return 'color: green'
+        return ''
+    
+    styled_df = comparison_df.style.applymap(highlight_diff, subset=['Difference'])
+    st.dataframe(styled_df, use_container_width=True)
+    
+    # Key insights
+    st.subheader("📊 Key Insights")
+    insights = []
+    
+    if asset1_data['Risk'] > asset2_data['Risk']:
+        insights.append(f"• **{asset1}** has higher market risk than **{asset2}** (+{asset1_data['Risk'] - asset2_data['Risk']} points)")
+    elif asset2_data['Risk'] > asset1_data['Risk']:
+        insights.append(f"• **{asset2}** has higher market risk than **{asset1}** (+{asset2_data['Risk'] - asset1_data['Risk']} points)")
+    
+    if asset1_data['Liquidity'] > asset2_data['Liquidity']:
+        insights.append(f"• **{asset1}** is more liquid than **{asset2}** (+{asset1_data['Liquidity'] - asset2_data['Liquidity']} points)")
+    elif asset2_data['Liquidity'] > asset1_data['Liquidity']:
+        insights.append(f"• **{asset2}** is more liquid than **{asset1}** (+{asset2_data['Liquidity'] - asset1_data['Liquidity']} points)")
+    
+    for insight in insights:
+        st.markdown(insight)
+
+# --- Data Export Section ---
+st.markdown("---")
+st.header("📤 Data Export")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button("📊 Export Filtered Data (CSV)"):
+        csv_data = filtered_df.to_csv(index=False)
+        st.download_button(
+            label="Download CSV",
+            data=csv_data,
+            file_name=f"asset_data_filtered_{selected_category.lower().replace(' ', '_')}.csv",
+            mime="text/csv"
+        )
+
+with col2:
+    if st.button("📈 Export All Data (JSON)"):
+        json_data = df.to_json(orient='records', indent=2)
+        st.download_button(
+            label="Download JSON",
+            data=json_data,
+            file_name="asset_data_complete.json",
+            mime="application/json"
+        )
+
+with col3:
+    if st.button("📋 Export Summary Stats"):
+        summary_stats = df.describe()
+        csv_stats = summary_stats.to_csv()
+        st.download_button(
+            label="Download Stats CSV",
+            data=csv_stats,
+            file_name="asset_summary_statistics.csv",
+            mime="text/csv"
+        )
