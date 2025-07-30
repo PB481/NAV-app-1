@@ -323,6 +323,224 @@ if asset1 and asset2:
     for insight in insights:
         st.markdown(insight)
 
+# --- Portfolio Builder Section ---
+st.markdown("---")
+st.header("🏗️ Portfolio Builder")
+
+# Initialize portfolio in session state
+if 'portfolio' not in st.session_state:
+    st.session_state.portfolio = {}
+
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.subheader("📊 Build Your Portfolio")
+    
+    # Asset selector
+    selected_asset = st.selectbox(
+        "Add Asset to Portfolio:",
+        options=df['Symbol'].tolist(),
+        format_func=lambda x: f"{x} - {df[df['Symbol']==x]['Name'].iloc[0]} ({df[df['Symbol']==x]['Category'].iloc[0]})"
+    )
+    
+    col_add, col_template = st.columns([1, 1])
+    with col_add:
+        if st.button("➕ Add to Portfolio"):
+            if selected_asset not in st.session_state.portfolio:
+                st.session_state.portfolio[selected_asset] = 10.0  # Default 10% weight
+                st.success(f"Added {selected_asset} to portfolio!")
+            else:
+                st.warning(f"{selected_asset} is already in portfolio!")
+    
+    with col_template:
+        template_option = st.selectbox(
+            "Or try a template:",
+            options=["Select Template", "Conservative", "Balanced", "Aggressive", "Liquid Assets Only"]
+        )
+        
+        if st.button("🎯 Apply Template") and template_option != "Select Template":
+            st.session_state.portfolio = {}  # Clear existing
+            
+            if template_option == "Conservative":
+                # Low risk, high liquidity
+                st.session_state.portfolio = {
+                    'USD': 30.0, 'UST': 25.0, 'EUR': 20.0, 'Bund': 15.0, 'IGC': 10.0
+                }
+            elif template_option == "Balanced":
+                # Mixed risk/liquidity profile
+                st.session_state.portfolio = {
+                    'UST': 20.0, 'IGC': 20.0, 'ETF': 25.0, 'HYC': 15.0, 'EMD': 10.0, 'Au': 10.0
+                }
+            elif template_option == "Aggressive":
+                # Higher risk, potentially higher returns
+                st.session_state.portfolio = {
+                    'ETF': 20.0, 'HYC': 20.0, 'PE': 15.0, 'VC': 15.0, 'HF': 15.0, 'Oil': 15.0
+                }
+            elif template_option == "Liquid Assets Only":
+                # High liquidity focus
+                st.session_state.portfolio = {
+                    'USD': 25.0, 'EUR': 20.0, 'UST': 20.0, 'ETF': 20.0, 'Fut': 15.0
+                }
+            
+            st.success(f"Applied {template_option} template!")
+            st.rerun()
+    
+    # Portfolio composition
+    if st.session_state.portfolio:
+        st.subheader("📈 Current Portfolio")
+        
+        # Create weight adjusters
+        portfolio_data = []
+        total_weight = 0
+        
+        for symbol in list(st.session_state.portfolio.keys()):
+            asset_info = df[df['Symbol'] == symbol].iloc[0]
+            
+            col_symbol, col_weight, col_remove = st.columns([2, 2, 1])
+            
+            with col_symbol:
+                st.write(f"**{symbol}** - {asset_info['Name']}")
+                st.write(f"*{asset_info['Category']}*")
+            
+            with col_weight:
+                weight = st.number_input(
+                    f"Weight % ({symbol})",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=st.session_state.portfolio[symbol],
+                    step=1.0,
+                    key=f"weight_{symbol}"
+                )
+                st.session_state.portfolio[symbol] = weight
+                total_weight += weight
+            
+            with col_remove:
+                st.write("")  # Spacer
+                if st.button("🗑️", key=f"remove_{symbol}", help=f"Remove {symbol}"):
+                    del st.session_state.portfolio[symbol]
+                    st.rerun()
+            
+            portfolio_data.append({
+                'Symbol': symbol,
+                'Name': asset_info['Name'],
+                'Category': asset_info['Category'],
+                'Weight': weight,
+                'Risk': asset_info['Risk'],
+                'Liquidity': asset_info['Liquidity'],
+                'OpCost': asset_info['OpCost'],
+                'OpRisk': asset_info['OpRisk']
+            })
+        
+        # Weight validation
+        if abs(total_weight - 100.0) > 0.1:
+            st.warning(f"⚠️ Portfolio weights sum to {total_weight:.1f}%. Consider adjusting to 100%.")
+        else:
+            st.success("✅ Portfolio weights sum to 100%!")
+
+with col2:
+    st.subheader("🎯 Portfolio Scoring")
+    
+    if st.session_state.portfolio and portfolio_data:
+        # Calculate weighted portfolio scores
+        def calculate_portfolio_score(portfolio_data, metric):
+            total_weighted_score = 0
+            total_weight = 0
+            
+            for asset in portfolio_data:
+                weight = asset['Weight'] / 100.0  # Convert percentage to decimal
+                score = asset[metric]
+                total_weighted_score += weight * score
+                total_weight += weight
+            
+            # Return weighted average, normalized by total weight
+            return total_weighted_score / total_weight if total_weight > 0 else 0
+        
+        # Calculate scores
+        portfolio_risk = calculate_portfolio_score(portfolio_data, 'Risk')
+        portfolio_liquidity = calculate_portfolio_score(portfolio_data, 'Liquidity')
+        portfolio_opcost = calculate_portfolio_score(portfolio_data, 'OpCost')
+        portfolio_oprisk = calculate_portfolio_score(portfolio_data, 'OpRisk')
+        
+        # Display portfolio metrics
+        st.metric("🎲 Portfolio Risk", f"{portfolio_risk:.1f}/10")
+        st.metric("💧 Portfolio Liquidity", f"{portfolio_liquidity:.1f}/10")
+        st.metric("💰 Portfolio Op Cost", f"{portfolio_opcost:.1f}/10")
+        st.metric("⚠️ Portfolio Op Risk", f"{portfolio_oprisk:.1f}/10")
+        
+        # Overall portfolio score (simple average of normalized metrics)
+        # Note: Liquidity is inverted for scoring (higher liquidity = better score)
+        risk_score = (10 - portfolio_risk) / 10  # Lower risk = better
+        liquidity_score = portfolio_liquidity / 10  # Higher liquidity = better
+        opcost_score = (10 - portfolio_opcost) / 10  # Lower cost = better
+        oprisk_score = (10 - portfolio_oprisk) / 10  # Lower risk = better
+        
+        overall_score = (risk_score + liquidity_score + opcost_score + oprisk_score) / 4 * 100
+        
+        st.markdown("---")
+        st.metric("🏆 Overall Portfolio Score", f"{overall_score:.1f}/100")
+        
+        # Score interpretation
+        if overall_score >= 80:
+            st.success("🟢 Excellent Portfolio - Low risk, high liquidity, efficient operations")
+        elif overall_score >= 60:
+            st.info("🟡 Good Portfolio - Balanced risk and operational characteristics")
+        elif overall_score >= 40:
+            st.warning("🟠 Moderate Portfolio - Some risk or operational concerns")
+        else:
+            st.error("🔴 High Risk Portfolio - Consider rebalancing for better risk/liquidity profile")
+
+# Portfolio Analysis
+if st.session_state.portfolio and portfolio_data:
+    st.markdown("---")
+    st.subheader("📊 Portfolio Analysis")
+    
+    # Create portfolio DataFrame
+    portfolio_df = pd.DataFrame(portfolio_data)
+    
+    # Portfolio composition chart
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Portfolio Composition by Weight**")
+        st.bar_chart(portfolio_df.set_index('Symbol')['Weight'])
+    
+    with col2:
+        st.write("**Category Breakdown**")
+        category_weights = portfolio_df.groupby('Category')['Weight'].sum()
+        st.bar_chart(category_weights)
+    
+    # Detailed portfolio table
+    st.write("**Detailed Portfolio Holdings**")
+    display_df = portfolio_df[['Symbol', 'Name', 'Category', 'Weight', 'Risk', 'Liquidity', 'OpCost', 'OpRisk']].copy()
+    st.dataframe(display_df, use_container_width=True)
+    
+    # Portfolio actions
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("🔄 Rebalance to Equal Weights"):
+            equal_weight = 100.0 / len(st.session_state.portfolio)
+            for symbol in st.session_state.portfolio:
+                st.session_state.portfolio[symbol] = equal_weight
+            st.success("Portfolio rebalanced to equal weights!")
+            st.rerun()
+    
+    with col2:
+        if st.button("🗑️ Clear Portfolio"):
+            st.session_state.portfolio = {}
+            st.success("Portfolio cleared!")
+            st.rerun()
+    
+    with col3:
+        # Export portfolio
+        portfolio_csv = portfolio_df.to_csv(index=False)
+        st.download_button(
+            label="📁 Export Portfolio CSV",
+            data=portfolio_csv,
+            file_name="my_portfolio.csv",
+            mime="text/csv"
+        )
+
 # --- Data Export Section ---
 st.markdown("---")
 st.header("📤 Data Export")
