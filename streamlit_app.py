@@ -190,9 +190,9 @@ max_row = df['GridRow'].max()
 # Try HTML rendering first, with fallback to Streamlit native components
 if not force_fallback:
     try:
-    # CSS for the grid container and the individual elements
-    # This is where the magic happens for the layout and hover effects.
-    html_string = f"""
+        # CSS for the grid container and the individual elements
+        # This is where the magic happens for the layout and hover effects.
+        html_string = f"""
     <style>
         .periodic-table-container {{
             display: grid;
