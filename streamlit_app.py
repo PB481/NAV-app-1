@@ -394,81 +394,90 @@ max_row = df['GridRow'].max()
 # Create the periodic table using Streamlit columns and containers
 st.subheader("🧪 The Periodic Table of Asset Types")
 
-# Display assets in periodic table layout similar to workstreams
-# Group assets by row to create proper periodic table structure
-for row in range(1, max_row + 1):
-    row_assets = df[df['GridRow'] == row].sort_values('GridCol')
+# Display assets in a simplified grid layout to avoid st.columns() issues
+# Group assets by category for reliable display
+display_assets = df.copy()
+
+# Apply filters
+if selected_category != 'All':
+    display_assets = display_assets[display_assets['Category'] == selected_category]
+if search_term:
+    search_mask = (
+        display_assets['Symbol'].str.contains(search_term, case=False, na=False) |
+        display_assets['Name'].str.contains(search_term, case=False, na=False)
+    )
+    display_assets = display_assets[search_mask]
+
+# Group by category and display in manageable chunks
+categories = sorted(display_assets['Category'].unique())
+
+for category in categories:
+    category_assets = display_assets[display_assets['Category'] == category].sort_values(['GridRow', 'GridCol'])
     
-    # Apply filters to row assets
-    filtered_row_assets = row_assets.copy()
-    if selected_category != 'All':
-        filtered_row_assets = filtered_row_assets[filtered_row_assets['Category'] == selected_category]
-    if search_term:
-        search_mask = (
-            filtered_row_assets['Symbol'].str.contains(search_term, case=False, na=False) |
-            filtered_row_assets['Name'].str.contains(search_term, case=False, na=False)
-        )
-        filtered_row_assets = filtered_row_assets[search_mask]
-    
-    if len(filtered_row_assets) > 0:
-        # Create columns for this row - use actual max columns but limit to reasonable number
-        actual_cols_in_row = row_assets['GridCol'].max()
-        cols = st.columns(min(actual_cols_in_row, 10))  # Limit to max 10 columns per row
+    if len(category_assets) > 0:
+        st.markdown(f"### {category}")
         
-        for _, asset in filtered_row_assets.iterrows():
-            color = get_color_for_value(asset[color_metric], color_metric)
-            
-            # Check if this asset should be highlighted or dimmed based on filters
-            is_filtered_out = (
-                (selected_category != 'All' and asset['Category'] != selected_category) or
-                (search_term and not (
-                    search_term.lower() in asset['Symbol'].lower() or 
-                    search_term.lower() in asset['Name'].lower()
-                ))
-            )
-            
-            # Use the correct column index, but ensure it doesn't exceed available columns
-            col_idx = min(asset['GridCol'] - 1, len(cols) - 1)
-            
-            with cols[col_idx]:
-                # Create the asset element with styling matching workstreams
-                opacity_style = "opacity: 0.3;" if is_filtered_out else "opacity: 1.0;"
+        # Display assets in rows of 5 (safe column count)
+        assets_list = category_assets.to_dict('records')
+        
+        for i in range(0, len(assets_list), 5):
+            row_assets = assets_list[i:i+5]
+            if len(row_assets) > 0:  # Additional safety check
+                cols = st.columns(len(row_assets))
                 
-                st.markdown(f"""
-                <div style="
-                    background-color: {color}; 
-                    padding: 12px; 
-                    border-radius: 8px; 
-                    text-align: center;
-                    border: 2px solid #333;
-                    margin: 3px;
-                    height: 120px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    {opacity_style}
-                ">
-                    <strong style="font-size: 1.4em; margin-bottom: 4px;">{asset['Symbol']}</strong><br/>
-                    <small style="font-size: 0.6em; line-height: 1.1;">{color_metric}: {asset[color_metric]}/10</small>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Show detailed information in an expander
-                with st.expander(f"📊 {asset['Symbol']} Details"):
-                    st.write(f"**Name:** {asset['Name']}")
-                    st.write(f"**Category:** {asset['Category']}")
-                    st.write(f"**Position:** Row {asset['GridRow']}, Col {asset['GridCol']}")
+                for idx, asset in enumerate(row_assets):
+                    color = get_color_for_value(asset[color_metric], color_metric)
                     
-                    # Metrics with visual indicators  
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Risk", f"{asset['Risk']}/10", help="Market/Credit Risk")
-                        st.metric("Op Cost", f"{asset['OpCost']}/10", help="Operational Cost")
-                    with col2:
-                        st.metric("Liquidity", f"{asset['Liquidity']}/10", help="Liquidity Level")
-                        st.metric("Op Risk", f"{asset['OpRisk']}/10", help="Operational Risk")
+                    # Check if this asset should be highlighted or dimmed based on filters
+                    is_filtered_out = (
+                        (selected_category != 'All' and asset['Category'] != selected_category) or
+                        (search_term and not (
+                            search_term.lower() in asset['Symbol'].lower() or 
+                            search_term.lower() in asset['Name'].lower()
+                        ))
+                    )
+                    
+                    with cols[idx]:
+                        # Create the asset element with styling matching workstreams
+                        opacity_style = "opacity: 0.3;" if is_filtered_out else "opacity: 1.0;"
+                        
+                        st.markdown(f"""
+                        <div style="
+                            background-color: {color}; 
+                            padding: 12px; 
+                            border-radius: 8px; 
+                            text-align: center;
+                            border: 2px solid #333;
+                            margin: 3px;
+                            height: 120px;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                            align-items: center;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                            {opacity_style}
+                        ">
+                            <strong style="font-size: 1.4em; margin-bottom: 4px;">{asset['Symbol']}</strong><br/>
+                            <small style="font-size: 0.6em; line-height: 1.1;">{color_metric}: {asset[color_metric]}/10</small>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Show detailed information in an expander
+                        with st.expander(f"📊 {asset['Symbol']} Details"):
+                            st.write(f"**Name:** {asset['Name']}")
+                            st.write(f"**Category:** {asset['Category']}")
+                            st.write(f"**Position:** Row {asset['GridRow']}, Col {asset['GridCol']}")
+                            
+                            # Metrics with visual indicators  
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric("Risk", f"{asset['Risk']}/10", help="Market/Credit Risk")
+                                st.metric("Op Cost", f"{asset['OpCost']}/10", help="Operational Cost")
+                            with col2:
+                                st.metric("Liquidity", f"{asset['Liquidity']}/10", help="Liquidity Level")
+                                st.metric("Op Risk", f"{asset['OpRisk']}/10", help="Operational Risk")
+        
+        st.markdown("---")  # Separator between categories
 
 # --- Operational Workstreams Periodic Table ---
 st.markdown("---")
