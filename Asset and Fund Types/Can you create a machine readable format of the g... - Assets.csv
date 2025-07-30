@@ -1,0 +1,23 @@
+GICS Sector/Group,Asset Class,Asset Type,Asset Sub-Type,Reference Details,Risk Score (1-5),Liquidity Score (1-5),Ops Risk Score (1-5),Cost Score (1-5)
+N/A,Cash & Equivalents,Cash,Physical Currency / Bank Deposits,Capital preservation; highest liquidity. Used for transactional purposes and as a risk-free benchmark.,1,1,1,1
+N/A,Cash & Equivalents,Money Market Instruments,Government Treasury Bills (<1 Year),Issued by sovereign governments. Considered risk-free from a credit perspective.,1,1,1,1
+N/A,Fixed Income,Government Bonds,"Developed Market Sovereign (e.g., US Treasury)","Low credit risk, acts as a portfolio diversifier. Primary risk is interest rate (duration) risk.",2,1,1,1
+N/A,Fixed Income,Government Bonds,Emerging Market Sovereign (Hard Currency),Higher yield for higher political and credit risk compared to developed markets.,4,2,2,1
+40 - Financials,Fixed Income,Corporate Bonds,Investment Grade,Issued by financially stable corporations. Low default risk but sensitive to credit spread widening.,2,2,1,1
+40 - Financials,Fixed Income,Corporate Bonds,High-Yield,Higher yield compensates for higher default risk. More correlated with equities than investment grade bonds.,4,3,2,2
+Multiple,Equities,Publicly Traded Stocks,Developed Market Large-Cap,Ownership in established global companies. Core growth asset. GICS classification depends on company's industry.,4,1,1,1
+Multiple,Equities,Publicly Traded Stocks,Developed Market Small-Cap,Higher growth potential and higher volatility than large-caps. Potential for higher long-term returns.,5,2,2,1
+Multiple,Equities,Publicly Traded Stocks,Emerging Market Equities,"High growth potential but subject to currency, political, and regulatory risks.",5,2,3,2
+N/A,Derivatives,Exchange-Traded (ETD),Futures & Options,Standardized contracts on regulated exchanges. Used for hedging and speculation. Counterparty risk mitigated by CCP.,5,1,1,1
+N/A,Derivatives,Over-the-Counter (OTC),"Forwards, Swaps, Exotic Options (Non-Cleared)","Bespoke, privately negotiated contracts. High flexibility but carries significant counterparty and operational risk.",5,4,4,2
+N/A,Private Credit,Direct Lending,Senior Secured Loans,Loans to middle-market companies. Illiquid but offers income. Risk is primarily borrower default.,3,5,4,4
+Multiple,Private Equity,Unlisted Equity,Venture Capital,"Early-stage, high-risk/high-return potential. Very illiquid with long holding periods.",5,5,5,5
+Multiple,Private Equity,Unlisted Equity,Buyout (LBO),Acquisition of mature companies using leverage. Performance highly dependent on GP skill and exit market conditions.,5,5,5,5
+60 - Real Estate,Real Estate,Direct Property,Core,"High-quality, stabilized assets in prime locations. Low risk, income-focused. Illiquid.",2,5,3,3
+60 - Real Estate,Real Estate,Direct Property,Opportunistic,High-risk development or distressed assets. Returns from capital appreciation. Very illiquid.,5,5,5,4
+20 - Industrials,Infrastructure,Direct Investment,Core / Brownfield,"Operational assets (e.g., toll roads, utilities) with stable, long-term cash flows. Illiquid.",2,5,3,3
+20 - Industrials,Infrastructure,Direct Investment,Opportunistic / Greenfield,"New construction projects. High completion, regulatory, and political risks. Very illiquid.",5,5,5,4
+10/15 - Energy/Materials,Commodities,Futures / Physical,"Energy, Metals, Agriculture","Highly volatile, driven by supply/demand. Used as inflation hedge. Physical is illiquid; futures are liquid but leveraged.",5,2,2,2
+45 - Info Tech,Digital Assets,Cryptocurrency,Bitcoin / Ethereum (via Spot ETF),"Extremely volatile, nascent asset class with high speculative interest and significant regulatory uncertainty.",5,1,4,2
+N/A,Carbon Credits,Emissions Allowances,Compliance & Voluntary Markets (via Futures/ETFs),"Nascent, volatile market driven by regulation and corporate climate goals. Project quality is a key risk.",5,3,4,3
+N/A,Litigation Finance,Legal Claims,Single Case / Portfolio Funding,Uncorrelated to financial markets. Returns depend on legal outcomes. Highly illiquid and speculative.,5,5,5,5

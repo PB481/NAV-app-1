@@ -1,0 +1,10 @@
+Regulatory Framework,Fund Type/Strategy,Common Legal Structure(s),Key Characteristics,Sample Asset Types Held,Risk Score (1-5),Liquidity Score (1-5),Ops Risk Score (1-5),Cost Score (1-5)
+UCITS,Equity ETF,"Irish ICAV, Lux SICAV",Retail investors; EU passport; daily liquidity; high transparency; strict diversification and asset eligibility rules.,"Publicly traded stocks (e.g., S&P 500, MSCI World), government & corporate bonds.",4,1,2,1
+UCITS,Money Market Fund (MMF),"Irish ICAV, Lux SICAV",Retail/Institutional; EU passport; daily liquidity; focus on capital preservation and liquidity.,"Short-term government debt, commercial paper, certificates of deposit.",1,1,2,1
+UCITS,"Multi-Asset (e.g., 60/40)","Irish ICAV, Lux SICAV",Retail investors; EU passport; daily liquidity; balanced risk profile.,A mix of global equities and investment-grade bonds.,3,1,2,2
+AIFMD,Hedge Fund,"Irish ICAV/QIAIF, Lux SIF/RAIF","Professional investors only; EU passport (professional); employs leverage, shorting, derivatives.","Equities, bonds, currencies, commodities, derivatives. Varies widely by strategy.",5,3,4,5
+AIFMD,Private Equity Fund,"Lux SCSp/SCS, Irish ILP",Professional investors only; long-term (10+ year) lock-up; high fees.,"Equity in non-listed companies (buyout, venture capital, growth).",5,5,5,5
+AIFMD,Private Credit Fund,"Lux SCSp/SCS, Irish ILP",Professional investors only; multi-year lock-up; income-focused.,"Direct loans to private companies (senior, mezzanine, distressed).",4,5,4,4
+AIFMD,Real Estate Fund (Core),"Lux SICAV/SIF, Irish ICAV/QIAIF","Professional investors; focus on stable, income-producing property; long-term hold.","High-quality office, industrial, residential properties.",2,5,3,3
+AIFMD,Infrastructure Fund,"Lux SCSp/SCS, Irish ILP","Professional investors; very long-term hold; stable, often inflation-linked cash flows.","Toll roads, airports, utilities, renewable energy assets, data centers.",3,5,4,4
+AIFMD,ELTIF 2.0,All AIF structures,Retail & Professional; EU passport; long-term focus with semi-liquid options.,"Infrastructure, real estate, SMEs, private equity, private credit, green bonds.",4,4,4,4

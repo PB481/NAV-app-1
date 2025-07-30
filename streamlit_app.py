@@ -694,141 +694,369 @@ if market_data:
             " | ".join([f"{symbol}: ${data['price']:.2f} ({data['change']:+.1f}%)" 
                       for symbol, data in list(market_data.items())[:5]]))
 
-# Generate and display the interactive periodic table
-st.write("**🧪 Authentic Periodic Table Layout**")
+# --- Advanced Asset Visualizations ---
+st.subheader("📊 Interactive Asset Analysis Dashboard")
 
-# Try CSS Grid first, then fall back to Plotly, then to simple table
-periodic_table_success = False
+# Apply filters to df
+display_df = df.copy()
+if selected_category != 'All':
+    display_df = display_df[display_df['Category'] == selected_category]
+if search_term:
+    search_mask = (
+        display_df['Symbol'].str.contains(search_term, case=False, na=False) |
+        display_df['Name'].str.contains(search_term, case=False, na=False)
+    )
+    display_df = display_df[search_mask]
 
-# Method 1: CSS Grid (preferred)
-try:
-    periodic_table_html = create_interactive_periodic_table(df, color_metric, selected_category, search_term)
-    if periodic_table_html and "Error creating" not in periodic_table_html:
-        st.markdown(periodic_table_html, unsafe_allow_html=True)
-        periodic_table_success = True
-        st.success("✅ CSS Grid periodic table loaded successfully!")
-except Exception as e:
-    st.warning(f"CSS Grid method failed: {str(e)}")
+# Create multiple visualization tabs
+tab1, tab2, tab3, tab4 = st.tabs(["🔬 Risk-Liquidity Matrix", "🌡️ Heatmaps", "📈 Interactive Charts", "🎯 Asset Positioning"])
 
-# Method 2: Plotly Fallback
-if not periodic_table_success and PLOTLY_AVAILABLE:
-    try:
-        st.info("🔄 Using Plotly visualization as fallback...")
-        import plotly.graph_objects as go
+with tab1:
+    st.write("### Risk vs Liquidity Analysis")
+    
+    if PLOTLY_AVAILABLE:
+        # Create bubble chart showing risk vs liquidity
+        fig_bubble = px.scatter(
+            display_df,
+            x='Risk',
+            y='Liquidity', 
+            size='OpCost',
+            color=color_metric,
+            hover_name='Symbol',
+            hover_data={
+                'Name': True,
+                'Category': True,
+                'OpRisk': True,
+                'GridRow': True,
+                'GridCol': True
+            },
+            title=f"Asset Risk-Liquidity Profile (Size=OpCost, Color={color_metric})",
+            labels={
+                'Risk': 'Market Risk Level (1-10)',
+                'Liquidity': 'Liquidity Level (1-10)',
+                'OpCost': 'Operational Cost'
+            },
+            color_continuous_scale='Viridis' if color_metric != 'Liquidity' else 'Viridis_r',
+            size_max=30
+        )
         
-        fig = go.Figure()
+        # Add quadrant lines
+        fig_bubble.add_hline(y=5.5, line_dash="dash", line_color="gray", opacity=0.5)
+        fig_bubble.add_vline(x=5.5, line_dash="dash", line_color="gray", opacity=0.5)
         
-        # Apply filters to df
-        display_df = df.copy()
-        if selected_category != 'All':
-            display_df = display_df[display_df['Category'] == selected_category]
-        if search_term:
-            search_mask = (
-                display_df['Symbol'].str.contains(search_term, case=False, na=False) |
-                display_df['Name'].str.contains(search_term, case=False, na=False)
-            )
-            display_df = display_df[search_mask]
+        # Add quadrant annotations
+        fig_bubble.add_annotation(x=2.5, y=8.5, text="💚 Safe Haven<br>(Low Risk, High Liquidity)", 
+                                 showarrow=False, font=dict(size=10), bgcolor="lightgreen", opacity=0.8)
+        fig_bubble.add_annotation(x=8.5, y=8.5, text="🟡 High Risk Liquid<br>(High Risk, High Liquidity)", 
+                                 showarrow=False, font=dict(size=10), bgcolor="yellow", opacity=0.8)
+        fig_bubble.add_annotation(x=2.5, y=2.5, text="🔵 Conservative Illiquid<br>(Low Risk, Low Liquidity)", 
+                                 showarrow=False, font=dict(size=10), bgcolor="lightblue", opacity=0.8)
+        fig_bubble.add_annotation(x=8.5, y=2.5, text="🔴 High Risk Illiquid<br>(High Risk, Low Liquidity)", 
+                                 showarrow=False, font=dict(size=10), bgcolor="lightcoral", opacity=0.8)
         
-        for _, asset in display_df.iterrows():
-            # Determine color based on selected metric
-            color_val = asset[color_metric]
-            if color_metric == 'Liquidity':
-                color = f'rgb({int(255 * (1 - (color_val-1)/9))}, {int(255 * (color_val-1)/9)}, 40)'
-            else:
-                color = f'rgb({int(255 * (color_val-1)/9)}, {int(255 * (1 - (color_val-1)/9))}, 40)'
+        fig_bubble.update_layout(height=600, hovermode='closest')
+        st.plotly_chart(fig_bubble, use_container_width=True)
+        
+        # Asset positioning insights
+        st.write("#### 🎯 Asset Positioning Insights")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Best and worst performers by selected metric
+            best_assets = display_df.nlargest(3, color_metric)
+            worst_assets = display_df.nsmallest(3, color_metric)
             
-            fig.add_trace(go.Scatter(
-                x=[asset['GridCol']],
-                y=[asset['GridRow']],
-                mode='markers+text',
-                marker=dict(
-                    size=70,
-                    color=color,
-                    line=dict(color='black', width=2)
-                ),
-                text=asset['Symbol'],
-                textfont=dict(size=12, color='white'),
-                hovertemplate=f"<b>{asset['Name']}</b><br>" +
-                             f"Category: {asset['Category']}<br>" +
-                             f"Risk: {asset['Risk']}/10<br>" +
-                             f"Liquidity: {asset['Liquidity']}/10<br>" +
-                             f"Op Cost: {asset['OpCost']}/10<br>" +
-                             f"Op Risk: {asset['OpRisk']}/10<extra></extra>",
-                showlegend=False,
-                name=asset['Symbol']
-            ))
+            st.write(f"**🏆 Highest {color_metric}:**")
+            for _, asset in best_assets.iterrows():
+                st.write(f"• **{asset['Symbol']}** ({asset['Name']}): {asset[color_metric]}/10")
+            
+            st.write(f"**⚠️ Lowest {color_metric}:**")
+            for _, asset in worst_assets.iterrows():
+                st.write(f"• **{asset['Symbol']}** ({asset['Name']}): {asset[color_metric]}/10")
         
-        fig.update_layout(
-            title=f"Interactive Periodic Table of Asset Types (Colored by {color_metric})",
-            xaxis=dict(
-                title="Grid Column",
-                showgrid=True,
-                gridcolor="lightgray",
-                range=[0, df['GridCol'].max() + 1],
-                dtick=1
-            ),
-            yaxis=dict(
-                title="Grid Row", 
-                showgrid=True,
-                gridcolor="lightgray",
-                range=[0, df['GridRow'].max() + 1],
-                autorange='reversed',  # Reverse to match periodic table layout
-                dtick=1
-            ),
-            height=600,
-            plot_bgcolor='white',
-            hovermode='closest'
+        with col2:
+            # Quadrant analysis
+            safe_haven = display_df[(display_df['Risk'] <= 5) & (display_df['Liquidity'] >= 6)]
+            high_risk_liquid = display_df[(display_df['Risk'] > 5) & (display_df['Liquidity'] >= 6)]
+            conservative_illiquid = display_df[(display_df['Risk'] <= 5) & (display_df['Liquidity'] < 6)]
+            high_risk_illiquid = display_df[(display_df['Risk'] > 5) & (display_df['Liquidity'] < 6)]
+            
+            st.write("**📊 Quadrant Distribution:**")
+            st.write(f"• 💚 Safe Haven: {len(safe_haven)} assets")
+            st.write(f"• 🟡 High Risk Liquid: {len(high_risk_liquid)} assets")
+            st.write(f"• 🔵 Conservative Illiquid: {len(conservative_illiquid)} assets")
+            st.write(f"• 🔴 High Risk Illiquid: {len(high_risk_illiquid)} assets")
+    
+    elif SEABORN_AVAILABLE:
+        st.info("Using Matplotlib/Seaborn visualization")
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        # Create scatter plot
+        scatter = ax.scatter(
+            display_df['Risk'], 
+            display_df['Liquidity'],
+            s=display_df['OpCost'] * 20,  # Size based on OpCost
+            c=display_df[color_metric],
+            cmap='viridis',
+            alpha=0.7,
+            edgecolors='black',
+            linewidth=1
         )
         
-        st.plotly_chart(fig, use_container_width=True)
-        periodic_table_success = True
-        st.success("✅ Plotly periodic table loaded successfully!")
+        # Add asset labels
+        for _, asset in display_df.iterrows():
+            ax.annotate(asset['Symbol'], 
+                       (asset['Risk'], asset['Liquidity']),
+                       xytext=(5, 5), textcoords='offset points',
+                       fontsize=8, fontweight='bold')
         
-    except Exception as e:
-        st.error(f"Plotly fallback failed: {str(e)}")
+        ax.set_xlabel('Market Risk Level (1-10)')
+        ax.set_ylabel('Liquidity Level (1-10)')
+        ax.set_title(f'Asset Risk-Liquidity Profile (Size=OpCost, Color={color_metric})')
+        ax.grid(True, alpha=0.3)
+        
+        # Add quadrant lines
+        ax.axhline(y=5.5, color='gray', linestyle='--', alpha=0.5)
+        ax.axvline(x=5.5, color='gray', linestyle='--', alpha=0.5)
+        
+        plt.colorbar(scatter, label=color_metric)
+        st.pyplot(fig, use_container_width=True)
 
-# Method 3: Simple Table Fallback  
-if not periodic_table_success:
-    st.error("❌ Advanced visualizations failed. Showing simple table view:")
+with tab2:
+    st.write("### Asset Metrics Heatmaps")
     
-    # Apply filters to df
-    display_df = df.copy()
-    if selected_category != 'All':
-        display_df = display_df[display_df['Category'] == selected_category]
-    if search_term:
-        search_mask = (
-            display_df['Symbol'].str.contains(search_term, case=False, na=False) |
-            display_df['Name'].str.contains(search_term, case=False, na=False)
+    if SEABORN_AVAILABLE:
+        # Create correlation heatmap
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("#### Metrics Correlation Matrix")
+            corr_metrics = display_df[['Risk', 'Liquidity', 'OpCost', 'OpRisk']].corr()
+            
+            fig_corr, ax_corr = plt.subplots(figsize=(8, 6))
+            sns.heatmap(corr_metrics, annot=True, cmap='RdBu_r', center=0,
+                       square=True, ax=ax_corr, cbar_kws={"shrink": .8})
+            ax_corr.set_title('Asset Metrics Correlation')
+            st.pyplot(fig_corr, use_container_width=True)
+        
+        with col2:
+            st.write("#### Asset Category Heatmap")
+            # Create category-wise average metrics
+            category_metrics = display_df.groupby('Category')[['Risk', 'Liquidity', 'OpCost', 'OpRisk']].mean()
+            
+            fig_cat, ax_cat = plt.subplots(figsize=(10, 6))
+            sns.heatmap(category_metrics.T, annot=True, cmap='YlOrRd', 
+                       cbar_kws={"shrink": .8}, ax=ax_cat)
+            ax_cat.set_title('Average Metrics by Asset Category')
+            ax_cat.set_xlabel('Asset Category')
+            ax_cat.set_ylabel('Metrics')
+            plt.xticks(rotation=45)
+            st.pyplot(fig_cat, use_container_width=True)
+    
+    elif PLOTLY_AVAILABLE:
+        # Plotly heatmaps
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("#### Metrics Correlation Matrix")
+            corr_metrics = display_df[['Risk', 'Liquidity', 'OpCost', 'OpRisk']].corr()
+            
+            fig_corr = px.imshow(corr_metrics, 
+                               text_auto=True, 
+                               aspect="auto",
+                               color_continuous_scale='RdBu_r',
+                               title="Asset Metrics Correlation")
+            st.plotly_chart(fig_corr, use_container_width=True)
+        
+        with col2:
+            st.write("#### Asset Metrics by Category")
+            category_metrics = display_df.groupby('Category')[['Risk', 'Liquidity', 'OpCost', 'OpRisk']].mean()
+            
+            fig_cat = px.imshow(category_metrics.T, 
+                              text_auto=True, 
+                              aspect="auto",
+                              color_continuous_scale='YlOrRd',
+                              title="Average Metrics by Category")
+            st.plotly_chart(fig_cat, use_container_width=True)
+
+with tab3:
+    st.write("### Interactive Asset Charts")
+    
+    chart_type = st.selectbox("Choose Chart Type:", 
+                             ["Scatter Matrix", "Parallel Coordinates", "Radar Chart", "Box Plots"])
+    
+    if chart_type == "Scatter Matrix" and PLOTLY_AVAILABLE:
+        fig_matrix = px.scatter_matrix(
+            display_df,
+            dimensions=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
+            color='Category',
+            hover_name='Symbol',
+            title="Asset Metrics Scatter Matrix"
         )
-        display_df = display_df[search_mask]
+        fig_matrix.update_layout(height=600)
+        st.plotly_chart(fig_matrix, use_container_width=True)
     
-    # Group by category for display
-    for category in sorted(display_df['Category'].unique()):
-        category_assets = display_df[display_df['Category'] == category]
-        st.subheader(f"📂 {category}")
+    elif chart_type == "Parallel Coordinates" and PLOTLY_AVAILABLE:
+        fig_parallel = px.parallel_coordinates(
+            display_df,
+            dimensions=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
+            color=color_metric,
+            labels={'Symbol': 'Asset Symbol'},
+            title=f"Parallel Coordinates Plot (Colored by {color_metric})"
+        )
+        st.plotly_chart(fig_parallel, use_container_width=True)
+    
+    elif chart_type == "Radar Chart" and PLOTLY_AVAILABLE:
+        # Select assets for radar comparison
+        selected_assets = st.multiselect(
+            "Select assets to compare:",
+            options=display_df['Symbol'].tolist(),
+            default=display_df['Symbol'].tolist()[:5]
+        )
         
-        # Display in columns
-        cols = st.columns(min(5, len(category_assets)))
-        for idx, (_, asset) in enumerate(category_assets.iterrows()):
-            with cols[idx % len(cols)]:
-                color = get_color_for_value(asset[color_metric], color_metric)
+        if selected_assets:
+            fig_radar = go.Figure()
+            
+            for symbol in selected_assets:
+                asset_data = display_df[display_df['Symbol'] == symbol].iloc[0]
+                categories = ['Risk', 'Liquidity', 'OpCost', 'OpRisk']
+                values = [asset_data[cat] for cat in categories]
+                values.append(values[0])  # Close the radar chart
                 
-                st.markdown(f"""
-                <div style="background-color: {color}; 
-                           padding: 15px; 
-                           border-radius: 8px; 
-                           text-align: center;
-                           border: 2px solid #333;
-                           margin: 5px 0;">
-                    <strong style="color: white; font-size: 1.2em;">{asset['Symbol']}</strong><br/>
-                    <small style="color: white;">{color_metric}: {asset[color_metric]}/10</small>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.caption(f"{asset['Name']}")
+                fig_radar.add_trace(go.Scatterpolar(
+                    r=values,
+                    theta=categories + [categories[0]],
+                    fill='toself',
+                    name=f"{symbol} ({asset_data['Name'][:20]}...)",
+                    line=dict(width=2),
+                    opacity=0.7
+                ))
+            
+            fig_radar.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 10])
+                ),
+                showlegend=True,
+                title="Asset Comparison Radar Chart",
+                height=500
+            )
+            
+            st.plotly_chart(fig_radar, use_container_width=True)
+    
+    elif chart_type == "Box Plots":
+        if PLOTLY_AVAILABLE:
+            # Box plots for each metric
+            metrics = ['Risk', 'Liquidity', 'OpCost', 'OpRisk']
+            
+            for metric in metrics:
+                fig_box = px.box(
+                    display_df, 
+                    x='Category', 
+                    y=metric,
+                    points="all",
+                    hover_name='Symbol',
+                    title=f"{metric} Distribution by Category"
+                )
+                fig_box.update_xaxis(tickangle=45)
+                st.plotly_chart(fig_box, use_container_width=True)
         
-        if len(category_assets) > 5:
-            st.write(f"*Showing {len(category_assets)} {category} assets*")
+        elif SEABORN_AVAILABLE:
+            metrics = ['Risk', 'Liquidity', 'OpCost', 'OpRisk']
+            fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+            axes = axes.ravel()
+            
+            for i, metric in enumerate(metrics):
+                sns.boxplot(data=display_df, x='Category', y=metric, ax=axes[i])
+                axes[i].set_title(f'{metric} Distribution by Category')
+                axes[i].tick_params(axis='x', rotation=45)
+            
+            plt.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+
+with tab4:
+    st.write("### Asset Positioning Analysis")
+    
+    if PLOTLY_AVAILABLE:
+        # 3D scatter plot
+        fig_3d = px.scatter_3d(
+            display_df,
+            x='Risk',
+            y='Liquidity', 
+            z='OpCost',
+            color=color_metric,
+            size='OpRisk',
+            hover_name='Symbol',
+            hover_data={'Name': True, 'Category': True},
+            title=f"3D Asset Positioning (Size=OpRisk, Color={color_metric})",
+            labels={
+                'Risk': 'Market Risk',
+                'Liquidity': 'Liquidity Level',
+                'OpCost': 'Operational Cost'
+            }
+        )
+        
+        fig_3d.update_layout(height=600)
+        st.plotly_chart(fig_3d, use_container_width=True)
+        
+        # Sunburst chart for category breakdown
+        st.write("#### Asset Category Breakdown")
+        fig_sunburst = px.sunburst(
+            display_df,
+            path=['Category', 'Symbol'],
+            values='Risk',  # Use risk as the size metric
+            color=color_metric,
+            title=f"Asset Category Hierarchy (Size=Risk, Color={color_metric})",
+            color_continuous_scale='Viridis'
+        )
+        st.plotly_chart(fig_sunburst, use_container_width=True)
+    
+    # Asset recommendations based on current selection
+    st.write("### 🎯 Smart Asset Recommendations")
+    
+    if len(display_df) > 0:
+        # Calculate composite scores
+        display_df_copy = display_df.copy()
+        
+        # Liquidity score (higher is better)
+        display_df_copy['Liquidity_Score'] = display_df_copy['Liquidity'] / 10
+        
+        # Risk score (lower is better for conservative investors)
+        display_df_copy['Risk_Score'] = (11 - display_df_copy['Risk']) / 10
+        
+        # OpCost score (lower is better)
+        display_df_copy['OpCost_Score'] = (11 - display_df_copy['OpCost']) / 10
+        
+        # OpRisk score (lower is better)
+        display_df_copy['OpRisk_Score'] = (11 - display_df_copy['OpRisk']) / 10
+        
+        # Overall score
+        display_df_copy['Overall_Score'] = (
+            display_df_copy['Liquidity_Score'] * 0.3 +
+            display_df_copy['Risk_Score'] * 0.3 +
+            display_df_copy['OpCost_Score'] * 0.2 +
+            display_df_copy['OpRisk_Score'] * 0.2
+        )
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.write("**🏆 Top Overall Assets:**")
+            top_assets = display_df_copy.nlargest(5, 'Overall_Score')
+            for i, (_, asset) in enumerate(top_assets.iterrows(), 1):
+                st.write(f"{i}. **{asset['Symbol']}** - {asset['Name'][:30]}...")
+                st.write(f"   Score: {asset['Overall_Score']:.3f}")
+        
+        with col2:
+            st.write("**💧 Most Liquid Assets:**")
+            liquid_assets = display_df_copy.nlargest(5, 'Liquidity')
+            for i, (_, asset) in enumerate(liquid_assets.iterrows(), 1):
+                st.write(f"{i}. **{asset['Symbol']}** - Liquidity: {asset['Liquidity']}/10")
+        
+        with col3:
+            st.write("**🛡️ Lowest Risk Assets:**")
+            safe_assets = display_df_copy.nsmallest(5, 'Risk')
+            for i, (_, asset) in enumerate(safe_assets.iterrows(), 1):
+                st.write(f"{i}. **{asset['Symbol']}** - Risk: {asset['Risk']}/10")
 
 # Add legend and instructions
 st.markdown("""
