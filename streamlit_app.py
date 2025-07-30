@@ -695,33 +695,41 @@ if market_data:
                       for symbol, data in list(market_data.items())[:5]]))
 
 # Generate and display the interactive periodic table
+st.write("**🧪 Authentic Periodic Table Layout**")
+
+# Try CSS Grid first, then fall back to Plotly, then to simple table
+periodic_table_success = False
+
+# Method 1: CSS Grid (preferred)
 try:
     periodic_table_html = create_interactive_periodic_table(df, color_metric, selected_category, search_term)
-    st.markdown(periodic_table_html, unsafe_allow_html=True)
+    if periodic_table_html and "Error creating" not in periodic_table_html:
+        st.markdown(periodic_table_html, unsafe_allow_html=True)
+        periodic_table_success = True
+        st.success("✅ CSS Grid periodic table loaded successfully!")
 except Exception as e:
-    st.error(f"Error rendering periodic table: {str(e)}")
-    # Fallback to the original simplified version
-    st.subheader("📊 Simplified Periodic Table (Fallback)")
-    
-    # Create a more straightforward grid using Plotly
-    if PLOTLY_AVAILABLE:
+    st.warning(f"CSS Grid method failed: {str(e)}")
+
+# Method 2: Plotly Fallback
+if not periodic_table_success and PLOTLY_AVAILABLE:
+    try:
+        st.info("🔄 Using Plotly visualization as fallback...")
         import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
         
         fig = go.Figure()
         
         # Apply filters to df
-        filtered_df = df.copy()
+        display_df = df.copy()
         if selected_category != 'All':
-            filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+            display_df = display_df[display_df['Category'] == selected_category]
         if search_term:
             search_mask = (
-                filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
-                filtered_df['Name'].str.contains(search_term, case=False, na=False)
+                display_df['Symbol'].str.contains(search_term, case=False, na=False) |
+                display_df['Name'].str.contains(search_term, case=False, na=False)
             )
-            filtered_df = filtered_df[search_mask]
+            display_df = display_df[search_mask]
         
-        for _, asset in filtered_df.iterrows():
+        for _, asset in display_df.iterrows():
             # Determine color based on selected metric
             color_val = asset[color_metric]
             if color_metric == 'Liquidity':
@@ -734,7 +742,7 @@ except Exception as e:
                 y=[asset['GridRow']],
                 mode='markers+text',
                 marker=dict(
-                    size=60,
+                    size=70,
                     color=color,
                     line=dict(color='black', width=2)
                 ),
@@ -751,28 +759,76 @@ except Exception as e:
             ))
         
         fig.update_layout(
-            title=f"Periodic Table of Asset Types (Colored by {color_metric})",
+            title=f"Interactive Periodic Table of Asset Types (Colored by {color_metric})",
             xaxis=dict(
                 title="Grid Column",
                 showgrid=True,
                 gridcolor="lightgray",
-                range=[0, df['GridCol'].max() + 1]
+                range=[0, df['GridCol'].max() + 1],
+                dtick=1
             ),
             yaxis=dict(
-                title="Grid Row",
+                title="Grid Row", 
                 showgrid=True,
                 gridcolor="lightgray",
                 range=[0, df['GridRow'].max() + 1],
-                autorange='reversed'  # Reverse to match periodic table layout
+                autorange='reversed',  # Reverse to match periodic table layout
+                dtick=1
             ),
             height=600,
-            width=1200,
-            plot_bgcolor='white'
+            plot_bgcolor='white',
+            hovermode='closest'
         )
         
         st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.error("Both CSS Grid and Plotly fallback are unavailable. Please check your setup.")
+        periodic_table_success = True
+        st.success("✅ Plotly periodic table loaded successfully!")
+        
+    except Exception as e:
+        st.error(f"Plotly fallback failed: {str(e)}")
+
+# Method 3: Simple Table Fallback  
+if not periodic_table_success:
+    st.error("❌ Advanced visualizations failed. Showing simple table view:")
+    
+    # Apply filters to df
+    display_df = df.copy()
+    if selected_category != 'All':
+        display_df = display_df[display_df['Category'] == selected_category]
+    if search_term:
+        search_mask = (
+            display_df['Symbol'].str.contains(search_term, case=False, na=False) |
+            display_df['Name'].str.contains(search_term, case=False, na=False)
+        )
+        display_df = display_df[search_mask]
+    
+    # Group by category for display
+    for category in sorted(display_df['Category'].unique()):
+        category_assets = display_df[display_df['Category'] == category]
+        st.subheader(f"📂 {category}")
+        
+        # Display in columns
+        cols = st.columns(min(5, len(category_assets)))
+        for idx, (_, asset) in enumerate(category_assets.iterrows()):
+            with cols[idx % len(cols)]:
+                color = get_color_for_value(asset[color_metric], color_metric)
+                
+                st.markdown(f"""
+                <div style="background-color: {color}; 
+                           padding: 15px; 
+                           border-radius: 8px; 
+                           text-align: center;
+                           border: 2px solid #333;
+                           margin: 5px 0;">
+                    <strong style="color: white; font-size: 1.2em;">{asset['Symbol']}</strong><br/>
+                    <small style="color: white;">{color_metric}: {asset[color_metric]}/10</small>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.caption(f"{asset['Name']}")
+        
+        if len(category_assets) > 5:
+            st.write(f"*Showing {len(category_assets)} {category} assets*")
 
 # Add legend and instructions
 st.markdown("""
