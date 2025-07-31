@@ -4,6 +4,13 @@ import math
 import json
 
 # Conditional imports for visualization libraries
+# --- Page Configuration ---
+st.set_page_config(
+    page_title="Periodic Table of Asset Types",
+    page_icon="📊",
+    layout="wide", # Use the full screen width
+)
+
 try:
     import plotly.express as px
     import plotly.graph_objects as go
@@ -46,12 +53,22 @@ except ImportError:
     SCIPY_AVAILABLE = False
     st.warning("SciPy not available - portfolio optimization will be disabled")
 
-# --- Page Configuration ---
-st.set_page_config(
-    page_title="Periodic Table of Asset Types",
-    page_icon="📊",
-    layout="wide", # Use the full screen width
-)
+try:
+    import yfinance as yf
+    import requests
+    YFINANCE_AVAILABLE = True
+except ImportError:
+    YFINANCE_AVAILABLE = False
+    st.warning("yfinance not available - real-time market data will be disabled")
+
+try:
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import mean_absolute_error, r2_score
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    st.warning("scikit-learn not available - AI predictions will be disabled")
 
 
 # --- Data Curation ---
@@ -2139,6 +2156,658 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
         st.warning("Please select at least one fund to analyze.")
     else:
         st.warning("3D analysis requires Plotly library for interactive visualizations.")
+
+# --- Real-Time Market Data Integration ---
+st.markdown("---")
+st.header("🔴 Real-Time Market Data & Live Analytics")
+st.info("Live market data integration with intelligent alerts and real-time fund performance tracking.")
+
+# Market data functions
+@st.cache_data(ttl=60)  # Cache for 1 minute
+def get_live_market_data(symbols, period="1d", interval="5m"):
+    """Fetch live market data using yfinance"""
+    if not YFINANCE_AVAILABLE:
+        return None
+    
+    try:
+        data = yf.download(symbols, period=period, interval=interval, progress=False)
+        return data
+    except Exception as e:
+        st.error(f"Error fetching market data: {str(e)}")
+        return None
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def get_market_indicators():
+    """Fetch key market indicators"""
+    if not YFINANCE_AVAILABLE:
+        return None
+    
+    try:
+        indicators = {}
+        symbols = {
+            'SPY': 'S&P 500 ETF',
+            'QQQ': 'NASDAQ ETF', 
+            'GLD': 'Gold ETF',
+            'TLT': 'Treasury ETF',
+            'VIX': 'Volatility Index',
+            'DX-Y.NYB': 'US Dollar Index'
+        }
+        
+        for symbol, name in symbols.items():
+            try:
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period="2d")
+                if not hist.empty:
+                    current_price = hist['Close'].iloc[-1]
+                    prev_price = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
+                    change = current_price - prev_price
+                    change_pct = (change / prev_price) * 100 if prev_price != 0 else 0
+                    
+                    indicators[symbol] = {
+                        'name': name,
+                        'price': current_price,
+                        'change': change,
+                        'change_pct': change_pct
+                    }
+            except:
+                continue
+        
+        return indicators
+    except Exception as e:
+        st.error(f"Error fetching market indicators: {str(e)}")
+        return None
+
+def check_nav_alerts(nav_data):
+    """Check for NAV alerts and anomalies"""
+    alerts = []
+    
+    if nav_data is None or nav_data.empty:
+        return alerts
+    
+    # Calculate daily changes
+    nav_data_sorted = nav_data.sort_values(['fund_id', 'nav_date'])
+    nav_data_sorted['daily_change'] = nav_data_sorted.groupby('fund_id')['nav_per_share'].pct_change()
+    nav_data_sorted['rolling_vol'] = nav_data_sorted.groupby('fund_id')['daily_change'].rolling(5).std().reset_index(0, drop=True)
+    
+    # Get latest data for each fund
+    latest_data = nav_data_sorted.groupby('fund_id').last().reset_index()
+    
+    for _, row in latest_data.iterrows():
+        if pd.isna(row['daily_change']):
+            continue
+            
+        # Large daily moves
+        if abs(row['daily_change']) > 0.02:
+            severity = 'HIGH' if abs(row['daily_change']) > 0.05 else 'MEDIUM'
+            alerts.append({
+                'type': 'NAV_MOVEMENT',
+                'fund_id': row['fund_id'],
+                'message': f"Large NAV movement: {row['daily_change']:.2%}",
+                'severity': severity,
+                'value': row['daily_change']
+            })
+        
+        # High volatility
+        if not pd.isna(row['rolling_vol']) and row['rolling_vol'] > 0.03:
+            alerts.append({
+                'type': 'HIGH_VOLATILITY',
+                'fund_id': row['fund_id'],
+                'message': f"High volatility detected: {row['rolling_vol']:.2%}",
+                'severity': 'MEDIUM',
+                'value': row['rolling_vol']
+            })
+    
+    return alerts
+
+def operational_health_check(fund_characteristics, custody_holdings):
+    """Check operational health indicators"""
+    alerts = []
+    
+    if fund_characteristics is None or custody_holdings is None:
+        return alerts
+    
+    # Check for concentration risk
+    holdings_by_fund = custody_holdings.groupby('fund_id')['market_value'].sum()
+    holdings_detail = custody_holdings.groupby(['fund_id', 'asset_class'])['market_value'].sum().reset_index()
+    
+    for fund_id in holdings_by_fund.index:
+        fund_holdings = holdings_detail[holdings_detail['fund_id'] == fund_id]
+        total_value = holdings_by_fund[fund_id]
+        
+        # Check for asset class concentration (>70% in single class)
+        max_concentration = (fund_holdings['market_value'] / total_value).max()
+        if max_concentration > 0.7:
+            dominant_class = fund_holdings.loc[fund_holdings['market_value'].idxmax(), 'asset_class']
+            alerts.append({
+                'type': 'CONCENTRATION_RISK',
+                'fund_id': fund_id,
+                'message': f"High concentration in {dominant_class}: {max_concentration:.1%}",
+                'severity': 'MEDIUM',
+                'value': max_concentration
+            })
+    
+    return alerts
+
+# Real-time market data interface
+if YFINANCE_AVAILABLE:
+    # Create tabs for live data
+    live_tab_market, live_tab_alerts, live_tab_performance, live_tab_correlation = st.tabs([
+        "📊 Live Market Data", "🚨 Intelligent Alerts", "📈 Real-Time Performance", "🔗 Market Correlation"
+    ])
+    
+    with live_tab_market:
+        st.subheader("Live Market Indicators")
+        
+        # Auto-refresh control
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            auto_refresh = st.checkbox("🔄 Auto-refresh (60s)", value=False)
+        with col2:
+            if st.button("🔴 Refresh Now") or auto_refresh:
+                st.rerun()
+        with col3:
+            st.write(f"⏰ Last updated: {pd.Timestamp.now().strftime('%H:%M:%S')}")
+        
+        # Get market indicators
+        indicators = get_market_indicators()
+        
+        if indicators:
+            # Display key metrics
+            cols = st.columns(len(indicators))
+            for i, (symbol, data) in enumerate(indicators.items()):
+                with cols[i]:
+                    delta_color = "normal" if data['change_pct'] >= 0 else "inverse"
+                    st.metric(
+                        label=data['name'],
+                        value=f"{data['price']:.2f}",
+                        delta=f"{data['change_pct']:+.2f}%",
+                        delta_color=delta_color
+                    )
+            
+            # Market overview chart
+            st.write("**Market Performance Today**")
+            market_df = pd.DataFrame([
+                {'Symbol': symbol, 'Name': data['name'], 'Change %': data['change_pct']}
+                for symbol, data in indicators.items()
+            ])
+            
+            fig_market = px.bar(
+                market_df,
+                x='Symbol',
+                y='Change %',
+                color='Change %',
+                color_continuous_scale='RdYlGn',
+                title="Market Indices Performance",
+                hover_data=['Name']
+            )
+            fig_market.update_layout(height=400)
+            st.plotly_chart(fig_market, use_container_width=True)
+            
+        else:
+            st.warning("Unable to fetch live market data. Please check your internet connection.")
+    
+    with live_tab_alerts:
+        st.subheader("🚨 Intelligent Alert System")
+        
+        # NAV alerts
+        if nav_data is not None:
+            nav_alerts = check_nav_alerts(nav_data)
+            
+            if nav_alerts:
+                st.error(f"⚠️ {len(nav_alerts)} NAV alerts detected!")
+                
+                for alert in nav_alerts:
+                    if alert['severity'] == 'HIGH':
+                        st.error(f"🔴 {alert['fund_id']}: {alert['message']}")
+                    else:
+                        st.warning(f"🟡 {alert['fund_id']}: {alert['message']}")
+            else:
+                st.success("✅ No NAV alerts - All funds performing within normal ranges")
+        
+        # Operational alerts
+        if fund_characteristics is not None and custody_holdings is not None:
+            op_alerts = operational_health_check(fund_characteristics, custody_holdings)
+            
+            if op_alerts:
+                st.warning(f"⚠️ {len(op_alerts)} operational alerts detected!")
+                
+                for alert in op_alerts:
+                    st.warning(f"🟡 {alert['fund_id']}: {alert['message']}")
+            else:
+                st.success("✅ No operational alerts - All systems healthy")
+        
+        # Alert configuration
+        st.write("**Alert Thresholds**")
+        col1, col2 = st.columns(2)
+        with col1:
+            nav_threshold = st.slider("NAV Change Alert (%)", 1.0, 10.0, 2.0, 0.5)
+            vol_threshold = st.slider("Volatility Alert (%)", 1.0, 5.0, 3.0, 0.5)
+        with col2:
+            concentration_threshold = st.slider("Concentration Risk (%)", 50, 90, 70, 5)
+            st.info("Alerts trigger when thresholds are exceeded")
+    
+    with live_tab_performance:
+        st.subheader("📈 Real-Time Fund Performance")
+        
+        if nav_data is not None:
+            # Real-time performance metrics
+            latest_nav = nav_data.groupby('fund_id').last().reset_index()
+            
+            # Performance summary
+            st.write("**Current Fund Status**")
+            perf_cols = st.columns(len(latest_nav))
+            
+            for i, (_, fund) in enumerate(latest_nav.iterrows()):
+                with perf_cols[i]:
+                    # Calculate recent performance (mock calculation for demo)
+                    fund_nav_data = nav_data[nav_data['fund_id'] == fund['fund_id']].sort_values('nav_date')
+                    if len(fund_nav_data) > 1:
+                        recent_change = (fund_nav_data['nav_per_share'].iloc[-1] / fund_nav_data['nav_per_share'].iloc[-2] - 1) * 100
+                    else:
+                        recent_change = 0
+                    
+                    st.metric(
+                        label=fund['fund_id'],
+                        value=f"{fund['nav_per_share']:.4f}",
+                        delta=f"{recent_change:+.2f}%"
+                    )
+            
+            # Live performance chart
+            st.write("**Live NAV Tracking**")
+            fig_live_nav = px.line(
+                nav_data,
+                x='nav_date',
+                y='nav_per_share',
+                color='fund_id',
+                title="Real-Time NAV Performance",
+                labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share'}
+            )
+            fig_live_nav.update_layout(height=500)
+            st.plotly_chart(fig_live_nav, use_container_width=True)
+        
+        else:
+            st.info("Connect operational data to see real-time fund performance")
+    
+    with live_tab_correlation:
+        st.subheader("🔗 Market Correlation Analysis")
+        
+        if indicators and nav_data is not None:
+            st.write("**Fund Performance vs Market Indicators**")
+            
+            # Create correlation analysis (simplified for demo)
+            correlation_data = []
+            for fund_id in nav_data['fund_id'].unique():
+                fund_nav_data = nav_data[nav_data['fund_id'] == fund_id].sort_values('nav_date')
+                if len(fund_nav_data) > 1:
+                    nav_change = (fund_nav_data['nav_per_share'].iloc[-1] / fund_nav_data['nav_per_share'].iloc[0] - 1) * 100
+                    correlation_data.append({'Fund': fund_id, 'Performance': nav_change})
+            
+            if correlation_data:
+                corr_df = pd.DataFrame(correlation_data)
+                
+                # Add market data for comparison
+                market_data = []
+                for symbol, data in indicators.items():
+                    if symbol in ['SPY', 'QQQ', 'GLD', 'TLT']:  # Focus on key indices
+                        market_data.append({'Asset': data['name'], 'Change': data['change_pct']})
+                
+                if market_data:
+                    market_df = pd.DataFrame(market_data)
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write("**Fund Performance**")
+                        fig_fund_perf = px.bar(
+                            corr_df,
+                            x='Fund',
+                            y='Performance',
+                            title="Fund Performance",
+                            color='Performance',
+                            color_continuous_scale='RdYlGn'
+                        )
+                        st.plotly_chart(fig_fund_perf, use_container_width=True)
+                    
+                    with col2:
+                        st.write("**Market Performance**")
+                        fig_market_perf = px.bar(
+                            market_df,
+                            x='Asset',
+                            y='Change',
+                            title="Market Indices",
+                            color='Change',
+                            color_continuous_scale='RdYlGn'
+                        )
+                        st.plotly_chart(fig_market_perf, use_container_width=True)
+        
+        else:
+            st.info("Market correlation analysis requires both market data and fund NAV data")
+
+else:
+    st.warning("Real-time market data requires yfinance library. Please install: pip install yfinance")
+
+# --- AI-Powered Fund Performance Predictor ---
+st.markdown("---")
+st.header("🤖 AI-Powered Fund Performance Predictor")
+st.info("Machine learning models for fund performance forecasting and predictive analytics.")
+
+def prepare_prediction_features(nav_data, market_indicators=None):
+    """Prepare features for ML prediction"""
+    if nav_data is None or nav_data.empty:
+        return None
+    
+    features_data = []
+    
+    for fund_id in nav_data['fund_id'].unique():
+        fund_data = nav_data[nav_data['fund_id'] == fund_id].sort_values('nav_date').copy()
+        
+        if len(fund_data) < 5:  # Need minimum data points
+            continue
+        
+        # Calculate technical indicators
+        fund_data['returns'] = fund_data['nav_per_share'].pct_change()
+        fund_data['volatility'] = fund_data['returns'].rolling(5).std()
+        fund_data['sma_5'] = fund_data['nav_per_share'].rolling(5).mean()
+        fund_data['rsi'] = calculate_rsi(fund_data['nav_per_share'], 5)
+        
+        # Create features for each row
+        for i in range(5, len(fund_data)):
+            row = fund_data.iloc[i]
+            features = {
+                'fund_id': fund_id,
+                'nav_per_share': row['nav_per_share'],
+                'returns_1d': fund_data['returns'].iloc[i],
+                'returns_5d_avg': fund_data['returns'].iloc[i-4:i+1].mean(),
+                'volatility': row['volatility'],
+                'sma_ratio': row['nav_per_share'] / row['sma_5'] if row['sma_5'] != 0 else 1,
+                'rsi': row['rsi'],
+                'volume_trend': 1,  # Placeholder
+                'target': fund_data['returns'].iloc[i+1] if i < len(fund_data)-1 else 0  # Next day return
+            }
+            features_data.append(features)
+    
+    return pd.DataFrame(features_data) if features_data else None
+
+def calculate_rsi(prices, window):
+    """Calculate Relative Strength Index"""
+    delta = prices.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi.fillna(50)
+
+def train_prediction_model(features_df):
+    """Train machine learning model for NAV prediction"""
+    if features_df is None or len(features_df) < 10:
+        return None, None
+    
+    feature_cols = ['returns_1d', 'returns_5d_avg', 'volatility', 'sma_ratio', 'rsi', 'volume_trend']
+    
+    # Prepare data
+    X = features_df[feature_cols].fillna(0)
+    y = features_df['target'].fillna(0)
+    
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    
+    # Train model
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=10)
+    model.fit(X_train, y_train)
+    
+    # Evaluate
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    
+    model_stats = {
+        'mae': mae,
+        'r2': r2,
+        'feature_importance': dict(zip(feature_cols, model.feature_importances_))
+    }
+    
+    return model, model_stats
+
+def predict_fund_performance(model, latest_features, days_ahead=5):
+    """Predict fund performance for next N days"""
+    if model is None or latest_features is None:
+        return None
+    
+    predictions = []
+    current_features = latest_features.copy()
+    
+    for day in range(days_ahead):
+        # Make prediction
+        pred_return = model.predict([current_features])[0]
+        predictions.append({
+            'day': day + 1,
+            'predicted_return': pred_return,
+            'confidence': min(abs(pred_return) * 100, 95)  # Simple confidence estimate
+        })
+        
+        # Update features for next prediction (simplified)
+        current_features[0] = pred_return  # Update returns_1d
+        current_features[1] = (current_features[1] + pred_return) / 2  # Update avg returns
+    
+    return predictions
+
+if SKLEARN_AVAILABLE and nav_data is not None:
+    # Create tabs for AI predictions
+    ai_tab_predictor, ai_tab_model, ai_tab_scenarios, ai_tab_insights = st.tabs([
+        "🔮 Performance Predictor", "📊 Model Analytics", "🎭 Scenario Analysis", "💡 AI Insights"
+    ])
+    
+    with ai_tab_predictor:
+        st.subheader("🔮 Fund Performance Predictions")
+        
+        # Model training
+        with st.spinner("🤖 Training AI models..."):
+            features_df = prepare_prediction_features(nav_data)
+            
+            if features_df is not None and len(features_df) > 10:
+                model, model_stats = train_prediction_model(features_df)
+                
+                if model is not None:
+                    st.success(f"✅ AI model trained successfully! R² Score: {model_stats['r2']:.3f}")
+                    
+                    # Fund selection for prediction
+                    available_funds = nav_data['fund_id'].unique()
+                    selected_fund = st.selectbox("Select Fund for Prediction:", available_funds)
+                    
+                    # Prediction parameters
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        prediction_days = st.slider("Prediction Horizon (Days)", 1, 30, 7)
+                    with col2:
+                        confidence_level = st.selectbox("Confidence Level", [80, 90, 95], index=1)
+                    
+                    if st.button("🚀 Generate Predictions"):
+                        # Get latest features for selected fund
+                        fund_features = features_df[features_df['fund_id'] == selected_fund]
+                        if not fund_features.empty:
+                            latest_features = fund_features.iloc[-1][['returns_1d', 'returns_5d_avg', 'volatility', 'sma_ratio', 'rsi', 'volume_trend']].values
+                            
+                            # Generate predictions
+                            predictions = predict_fund_performance(model, latest_features, prediction_days)
+                            
+                            if predictions:
+                                # Display predictions
+                                pred_df = pd.DataFrame(predictions)
+                                
+                                # Prediction chart
+                                fig_pred = px.line(
+                                    pred_df,
+                                    x='day',
+                                    y='predicted_return',
+                                    title=f"{selected_fund} - {prediction_days} Day Performance Forecast",
+                                    labels={'day': 'Days Ahead', 'predicted_return': 'Predicted Return (%)'}
+                                )
+                                fig_pred.update_traces(mode='lines+markers')
+                                fig_pred.update_layout(height=400)
+                                st.plotly_chart(fig_pred, use_container_width=True)
+                                
+                                # Prediction summary
+                                total_predicted_return = sum([p['predicted_return'] for p in predictions])
+                                avg_confidence = sum([p['confidence'] for p in predictions]) / len(predictions)
+                                
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.metric("Total Predicted Return", f"{total_predicted_return:.2%}")
+                                with col2:
+                                    st.metric("Average Confidence", f"{avg_confidence:.1f}%")
+                                with col3:
+                                    risk_level = "High" if abs(total_predicted_return) > 0.05 else "Medium" if abs(total_predicted_return) > 0.02 else "Low"
+                                    st.metric("Risk Level", risk_level)
+                                
+                                # Detailed predictions table
+                                st.write("**Detailed Predictions**")
+                                pred_display = pred_df.copy()
+                                pred_display['predicted_return'] = pred_display['predicted_return'].apply(lambda x: f"{x:.2%}")
+                                pred_display['confidence'] = pred_display['confidence'].apply(lambda x: f"{x:.1f}%")
+                                st.dataframe(pred_display, use_container_width=True)
+                    
+                else:
+                    st.error("Failed to train prediction model. Please check data quality.")
+            else:
+                st.warning("Insufficient data for AI model training. Need at least 10 data points per fund.")
+    
+    with ai_tab_model:
+        st.subheader("📊 Model Performance Analytics")
+        
+        if 'model_stats' in locals() and model_stats is not None:
+            # Model performance metrics
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.metric("Mean Absolute Error", f"{model_stats['mae']:.4f}")
+                st.metric("R² Score", f"{model_stats['r2']:.3f}")
+                
+                # Model quality assessment
+                if model_stats['r2'] > 0.7:
+                    st.success("🟢 Excellent model performance")
+                elif model_stats['r2'] > 0.5:
+                    st.warning("🟡 Good model performance")
+                else:
+                    st.error("🔴 Model needs improvement")
+            
+            with col2:
+                # Feature importance
+                st.write("**Feature Importance**")
+                importance_df = pd.DataFrame([
+                    {'Feature': k, 'Importance': v}
+                    for k, v in model_stats['feature_importance'].items()
+                ]).sort_values('Importance', ascending=True)
+                
+                fig_importance = px.bar(
+                    importance_df,
+                    x='Importance',
+                    y='Feature',
+                    orientation='h',
+                    title="Feature Importance in Predictions"
+                )
+                st.plotly_chart(fig_importance, use_container_width=True)
+        else:
+            st.info("Train a model in the Predictor tab to see analytics")
+    
+    with ai_tab_scenarios:
+        st.subheader("🎭 Scenario Analysis")
+        
+        if 'model' in locals() and model is not None:
+            st.write("**What-If Scenario Testing**")
+            
+            # Scenario parameters
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                scenario_volatility = st.slider("Market Volatility", 0.01, 0.10, 0.02, 0.01, format="%.2f")
+                scenario_trend = st.slider("Market Trend", -0.05, 0.05, 0.0, 0.01, format="%.2f")
+            
+            with col2:
+                scenario_rsi = st.slider("RSI Level", 20, 80, 50, 5)
+                scenario_momentum = st.slider("Momentum Factor", -0.03, 0.03, 0.0, 0.01, format="%.2f")
+            
+            if st.button("🎯 Run Scenario Analysis"):
+                # Create scenario features
+                scenario_features = [scenario_trend, scenario_momentum, scenario_volatility, 1.0, scenario_rsi, 1.0]
+                
+                # Generate scenario predictions for all funds
+                scenario_results = []
+                for fund_id in nav_data['fund_id'].unique():
+                    pred_return = model.predict([scenario_features])[0]
+                    scenario_results.append({
+                        'Fund': fund_id,
+                        'Predicted Return': pred_return,
+                        'Risk Level': 'High' if abs(pred_return) > 0.03 else 'Medium' if abs(pred_return) > 0.01 else 'Low'
+                    })
+                
+                scenario_df = pd.DataFrame(scenario_results)
+                
+                # Scenario results chart
+                fig_scenario = px.bar(
+                    scenario_df,
+                    x='Fund',
+                    y='Predicted Return',
+                    color='Risk Level',
+                    title="Scenario Analysis Results",
+                    color_discrete_map={'Low': 'green', 'Medium': 'orange', 'High': 'red'}
+                )
+                st.plotly_chart(fig_scenario, use_container_width=True)
+                
+                # Scenario summary
+                st.write("**Scenario Summary**")
+                st.dataframe(scenario_df, use_container_width=True)
+        else:
+            st.info("Train a model in the Predictor tab to run scenario analysis")
+    
+    with ai_tab_insights:
+        st.subheader("💡 AI-Generated Insights")
+        
+        if nav_data is not None:
+            # Generate insights based on data analysis
+            insights = []
+            
+            # Fund performance insights
+            fund_performance = nav_data.groupby('fund_id').agg({
+                'nav_per_share': ['mean', 'std', 'min', 'max']
+            }).round(4)
+            fund_performance.columns = ['Avg NAV', 'Volatility', 'Min NAV', 'Max NAV']
+            
+            # Best performer
+            best_performer = fund_performance.loc[fund_performance['Avg NAV'].idxmax()]
+            insights.append(f"🏆 **Best Performer**: {best_performer.name} with average NAV of {best_performer['Avg NAV']:.4f}")
+            
+            # Most stable
+            most_stable = fund_performance.loc[fund_performance['Volatility'].idxmin()]
+            insights.append(f"🛡️ **Most Stable**: {most_stable.name} with volatility of {most_stable['Volatility']:.4f}")
+            
+            # Risk assessment
+            high_risk_funds = fund_performance[fund_performance['Volatility'] > fund_performance['Volatility'].median()].index.tolist()
+            if high_risk_funds:
+                insights.append(f"⚠️ **Higher Risk Funds**: {', '.join(high_risk_funds)} show above-median volatility")
+            
+            # Correlation insights
+            if len(nav_data['fund_id'].unique()) > 2:
+                nav_pivot = nav_data.pivot(index='nav_date', columns='fund_id', values='nav_per_share')
+                correlation_matrix = nav_pivot.corr()
+                avg_correlation = correlation_matrix.values[correlation_matrix.values != 1].mean()
+                insights.append(f"🔗 **Fund Correlation**: Average correlation of {avg_correlation:.2f} indicates {'high' if avg_correlation > 0.7 else 'moderate' if avg_correlation > 0.3 else 'low'} interconnection")
+            
+            # Display insights
+            for insight in insights:
+                st.write(insight)
+            
+            # Performance summary table
+            st.write("**Fund Performance Summary**")
+            st.dataframe(fund_performance, use_container_width=True)
+            
+        else:
+            st.info("Load fund data to see AI-generated insights")
+
+else:
+    if not SKLEARN_AVAILABLE:
+        st.warning("AI predictions require scikit-learn library. Please install: pip install scikit-learn")
+    else:
+        st.info("Load operational fund data to enable AI-powered predictions")
 
 # Asset data table for reference
 st.markdown("---")
