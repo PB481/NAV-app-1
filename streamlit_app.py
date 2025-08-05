@@ -1080,54 +1080,108 @@ with selected_tab[8]:
 # that are loaded separately and displayed in their respective tabs.
 # ============================================================================
 
-with tab1:
-    st.write("### Risk vs Liquidity Analysis")
+# This section is handled by the tabs above and real data section below
+# All duplicate content has been removed to prevent errors
+
+# --- Real Financial Data Analysis ---
+if real_assets_df is not None and real_funds_df is not None:
+    st.markdown("---")
+    st.header("🏦 Real Financial Data Analysis")
     
-    if PLOTLY_AVAILABLE:
-        # Create bubble chart showing risk vs liquidity
-        fig_bubble = px.scatter(
-            display_df,
-            x='Risk',
-            y='Liquidity', 
-            size='OpCost',
-            color=color_metric,
-            hover_name='Symbol',
-            hover_data={
-                'Name': True,
-                'Category': True,
-                'OpRisk': True,
-                'GridRow': True,
-                'GridCol': True
-            },
-            title=f"Asset Risk-Liquidity Profile (Size=OpCost, Color={color_metric})",
-            labels={
-                'Risk': 'Market Risk Level (1-10)',
-                'Liquidity': 'Liquidity Level (1-10)',
-                'OpCost': 'Operational Cost'
-            },
-            color_continuous_scale='Viridis' if color_metric != 'Liquidity' else 'Viridis_r',
-            size_max=30
-        )
+    # Create tabs for real data analysis
+    tab_assets, tab_funds, tab_combined = st.tabs(["📊 Asset Classes", "🏛️ Fund Types", "🔗 Combined Analysis"])
+    
+    with tab_assets:
+        st.subheader("Real Asset Classes Analysis")
         
-        # Add quadrant lines
-        fig_bubble.add_hline(y=5.5, line_dash="dash", line_color="gray", opacity=0.5)
-        fig_bubble.add_vline(x=5.5, line_dash="dash", line_color="gray", opacity=0.5)
+        if PLOTLY_AVAILABLE:
+            # Risk vs Liquidity scatter for real assets
+            fig_real_assets = px.scatter(
+                real_assets_df,
+                x='risk_score',
+                y='liquidity_score',
+                size='market_cap_billions',
+                color='gics_sector',
+                hover_name='asset_class',
+                title="Real Asset Classes: Risk vs Liquidity",
+                labels={'risk_score': 'Risk Score (1-5)', 'liquidity_score': 'Liquidity Score (1-5)'}
+            )
+            fig_real_assets.update_layout(height=500)
+            st.plotly_chart(fig_real_assets, use_container_width=True)
+        else:
+            st.warning("Plotly not available for interactive charts")
         
-        # Add quadrant annotations
-        fig_bubble.add_annotation(x=2.5, y=8.5, text="💚 Safe Haven<br>(Low Risk, High Liquidity)", 
-                                 showarrow=False, font=dict(size=10), bgcolor="lightgreen", opacity=0.8)
-        fig_bubble.add_annotation(x=8.5, y=8.5, text="🟡 High Risk Liquid<br>(High Risk, High Liquidity)", 
-                                 showarrow=False, font=dict(size=10), bgcolor="yellow", opacity=0.8)
-        fig_bubble.add_annotation(x=2.5, y=2.5, text="🔵 Conservative Illiquid<br>(Low Risk, Low Liquidity)", 
-                                 showarrow=False, font=dict(size=10), bgcolor="lightblue", opacity=0.8)
-        fig_bubble.add_annotation(x=8.5, y=2.5, text="🔴 High Risk Illiquid<br>(High Risk, Low Liquidity)", 
-                                 showarrow=False, font=dict(size=10), bgcolor="lightcoral", opacity=0.8)
+        # Display basic info about real assets  
+        st.dataframe(real_assets_df.head(), use_container_width=True)
+    
+    with tab_funds:
+        st.subheader("Fund Types Analysis")
         
-        fig_bubble.update_layout(height=600, hovermode='closest')
-        st.plotly_chart(fig_bubble, use_container_width=True)
+        if PLOTLY_AVAILABLE:
+            # Fund risk analysis
+            fig_funds = px.scatter(
+                real_funds_df,
+                x='expense_ratio',
+                y='risk_score',
+                size='aum_billions',
+                color='fund_type',
+                hover_name='fund_name',
+                title="Fund Types: Expense Ratio vs Risk",
+                labels={'expense_ratio': 'Expense Ratio (%)', 'risk_score': 'Risk Score (1-5)'}
+            )
+            fig_funds.update_layout(height=500)
+            st.plotly_chart(fig_funds, use_container_width=True)
+        else:
+            st.warning("Plotly not available for interactive charts")
         
-        # Asset positioning insights
-        st.write("#### 🎯 Asset Positioning Insights")
+        # Display fund data
+        st.dataframe(real_funds_df.head(), use_container_width=True)
+    
+    with tab_combined:
+        st.subheader("Combined Analysis")
+        st.info("Combined analysis of assets and funds will be displayed here.")
+
+# --- Operational Data Analysis ---
+if nav_data is not None and fund_characteristics is not None and custody_holdings is not None:
+    st.markdown("---")
+    st.header("🏢 Operational Fund Data Analysis")
+    
+    # Create operational analysis tabs
+    op_tab_nav, op_tab_holdings, op_tab_characteristics, op_tab_dashboard, op_tab_workstreams = st.tabs([
+        "📈 NAV Analysis", 
+        "💼 Holdings", 
+        "📋 Characteristics", 
+        "📊 Dashboard", 
+        "🔄 Workstreams"
+    ])
+    
+    with op_tab_nav:
+        st.subheader("📈 NAV Performance Analysis")
+        
+        if PLOTLY_AVAILABLE:
+            # NAV time series chart
+            fig_nav = px.line(
+                nav_data,
+                x='nav_date',
+                y='nav_per_share',
+                color='fund_id',
+                title='NAV Performance Over Time',
+                labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share', 'fund_id': 'Fund ID'}
+            )
+            fig_nav.update_layout(height=500)
+            st.plotly_chart(fig_nav, use_container_width=True)
+        else:
+            st.warning("Plotly not available for interactive charts")
+        
+        # NAV statistics
+        st.subheader("📊 NAV Statistics")
+        nav_stats = nav_data.groupby('fund_id').agg({
+            'nav_per_share': ['min', 'max', 'mean', 'std'],
+            'total_nav': ['mean'],
+            'shares_outstanding': ['mean']
+        }).round(4)
+        nav_stats.columns = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility', 'Avg Total NAV', 'Avg Shares Outstanding']
+        st.dataframe(nav_stats, use_container_width=True)
         col1, col2 = st.columns(2)
         
         with col1:
@@ -1156,7 +1210,24 @@ with tab1:
             st.write(f"• 🔵 Conservative Illiquid: {len(conservative_illiquid)} assets")
             st.write(f"• 🔴 High Risk Illiquid: {len(high_risk_illiquid)} assets")
     
-    elif SEABORN_AVAILABLE:
+    with op_tab_holdings:
+        st.subheader("💼 Holdings Analysis")
+        st.info("Holdings analysis will be displayed here")
+    
+    with op_tab_characteristics:
+        st.subheader("📋 Fund Characteristics") 
+        st.info("Fund characteristics analysis will be displayed here")
+    
+    with op_tab_dashboard:
+        st.subheader("📊 Dashboard")
+        st.info("Operational dashboard will be displayed here")
+    
+    with op_tab_workstreams:
+        st.subheader("🔄 Workstreams")
+        st.info("Workstream analysis will be displayed here")
+
+# End of navigation optimization - rest of the file contains additional operational content
+# that will load naturally below the main navigation tabs
         st.info("Using Matplotlib/Seaborn visualization")
         fig, ax = plt.subplots(figsize=(12, 8))
         
