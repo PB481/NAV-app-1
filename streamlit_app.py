@@ -1286,26 +1286,65 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
         st.subheader("🔄 Workstream Analysis")
         st.info("Workstream analysis and business processes will be displayed here")
 
-# Rest of the operational content continues below...
+# The clean operational data analysis section starts below
+
+if nav_data is not None and fund_characteristics is not None and custody_holdings is not None:
+    st.markdown("---")
+    st.header("🏢 Operational Fund Data Analysis")
+    st.info("Real operational data from fund administration systems including NAV, holdings, and fund characteristics.")
+    
+    # Create tabs for operational data analysis
+    op_tab_nav_final, op_tab_holdings_final, op_tab_characteristics_final, op_tab_dashboard_final, op_tab_workstreams_final = st.tabs([
+        "📈 NAV Performance", "📊 Portfolio Holdings", "🏛️ Fund Characteristics", "📋 Operations Dashboard", "🔗 Workstream Network"
+    ])
+    
+    with op_tab_nav_final:
+        st.subheader("NAV Performance Analysis")
         
-        # Add asset labels
-        for _, asset in display_df.iterrows():
-            ax.annotate(asset['Symbol'], 
-                       (asset['Risk'], asset['Liquidity']),
-                       xytext=(5, 5), textcoords='offset points',
-                       fontsize=8, fontweight='bold')
-        
-        ax.set_xlabel('Market Risk Level (1-10)')
-        ax.set_ylabel('Liquidity Level (1-10)')
-        ax.set_title(f'Asset Risk-Liquidity Profile (Size=OpCost, Color={color_metric})')
-        ax.grid(True, alpha=0.3)
-        
-        # Add quadrant lines
-        ax.axhline(y=5.5, color='gray', linestyle='--', alpha=0.5)
-        ax.axvline(x=5.5, color='gray', linestyle='--', alpha=0.5)
-        
-        plt.colorbar(scatter, label=color_metric)
-        st.pyplot(fig, use_container_width=True)
+        if PLOTLY_AVAILABLE:
+            # NAV time series analysis
+            st.write("**Daily NAV Performance by Fund**")
+            
+            # Create NAV time series chart
+            fig_nav_final = px.line(
+                nav_data,
+                x='nav_date',
+                y='nav_per_share',
+                color='fund_id',
+                title="Daily NAV Per Share - All Funds",
+                labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share', 'fund_id': 'Fund ID'}
+            )
+            fig_nav_final.update_layout(height=500)
+            st.plotly_chart(fig_nav_final, use_container_width=True, key="nav_chart_final")
+        else:
+            st.warning("Plotly not available for interactive charts")
+    
+    with op_tab_holdings_final:
+        st.subheader("📊 Portfolio Holdings")
+        if custody_holdings is not None:
+            st.dataframe(custody_holdings.head(), use_container_width=True)
+        else:
+            st.info("Holdings data not available")
+    
+    with op_tab_characteristics_final:
+        st.subheader("🏛️ Fund Characteristics")
+        if fund_characteristics is not None:
+            st.dataframe(fund_characteristics.head(), use_container_width=True)
+        else:
+            st.info("Fund characteristics data not available") 
+    
+    with op_tab_dashboard_final:
+        st.subheader("📋 Operations Dashboard")
+        st.info("Operational dashboard content will be displayed here")
+    
+    with op_tab_workstreams_final:
+        st.subheader("🔗 Workstream Network")
+        st.info("Workstream network analysis will be displayed here")
+
+# End of main application content
+
+# Additional operational analysis sections and features continue below
+# These sections contain the original comprehensive operational analysis
 
 with tab2:
     st.write("### Asset Metrics Heatmaps")
