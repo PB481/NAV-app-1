@@ -1098,13 +1098,13 @@ if real_assets_df is not None and real_funds_df is not None:
             # Risk vs Liquidity scatter for real assets
             fig_real_assets = px.scatter(
                 real_assets_df,
-                x='risk_score',
-                y='liquidity_score',
-                size='market_cap_billions',
-                color='gics_sector',
-                hover_name='asset_class',
+                x='Risk_Score',
+                y='Liquidity_Score',
+                size='Cost_Score',
+                color='GICS_Sector',
+                hover_name='Asset_Class',
                 title="Real Asset Classes: Risk vs Liquidity",
-                labels={'risk_score': 'Risk Score (1-5)', 'liquidity_score': 'Liquidity Score (1-5)'}
+                labels={'Risk_Score': 'Risk Score (1-5)', 'Liquidity_Score': 'Liquidity Score (1-5)'}
             )
             fig_real_assets.update_layout(height=500)
             st.plotly_chart(fig_real_assets, use_container_width=True)
@@ -1121,13 +1121,13 @@ if real_assets_df is not None and real_funds_df is not None:
             # Fund risk analysis
             fig_funds = px.scatter(
                 real_funds_df,
-                x='expense_ratio',
-                y='risk_score',
-                size='aum_billions',
-                color='fund_type',
-                hover_name='fund_name',
-                title="Fund Types: Expense Ratio vs Risk",
-                labels={'expense_ratio': 'Expense Ratio (%)', 'risk_score': 'Risk Score (1-5)'}
+                x='Risk_Score',
+                y='Liquidity_Score',
+                size='Cost_Score',
+                color='Fund_Type',
+                hover_name='Fund_Type',
+                title="Fund Types: Risk vs Liquidity",
+                labels={'Risk_Score': 'Risk Score (1-5)', 'Liquidity_Score': 'Liquidity Score (1-5)'}
             )
             fig_funds.update_layout(height=500)
             st.plotly_chart(fig_funds, use_container_width=True)
