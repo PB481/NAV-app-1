@@ -4544,3 +4544,1765 @@ with col3:
             file_name="asset_summary_statistics.csv",
             mime="text/csv"
         )
+
+# ============================================================================
+# MLOPS FOR FUND ACCOUNTING SECTION
+# ============================================================================
+
+st.markdown("---")
+st.header("🤖 MLOps for Fund Accounting")
+st.markdown("""
+**Machine Learning Operations (MLOps) in Financial Services**
+
+Explore how modern MLOps tools can revolutionize fund accounting workflows, 
+from automated data quality checks to predictive modeling and deployment.
+""")
+
+# Create MLOps tabs
+mlops_tabs = st.tabs([
+    "📋 MLOps Overview", 
+    "📊 Model Tracking (MLflow)", 
+    "✅ Data Quality (Great Expectations)", 
+    "🔄 Workflow Management (Prefect)",
+    "📦 Model Deployment",
+    "📈 Production Monitoring"
+])
+
+with mlops_tabs[0]:
+    st.subheader("📋 MLOps Tools for Fund Accounting")
+    
+    st.markdown("""
+    ### Why MLOps in Fund Accounting?
+    
+    Modern fund accounting involves complex data pipelines, regulatory compliance,
+    and the need for accurate, reproducible calculations. MLOps tools can help:
+    
+    - **Automate** repetitive data validation and calculation processes
+    - **Ensure** data quality and regulatory compliance
+    - **Track** model performance and data lineage
+    - **Scale** operations for hundreds of funds efficiently
+    - **Reduce** manual errors and operational risk
+    """)
+    
+    # MLOps Tools Overview
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        #### 🎯 Core MLOps Tools
+        
+        **MLflow** - Model lifecycle management
+        - Track experiments and model versions
+        - Model registry for production deployment
+        - Performance monitoring and comparison
+        
+        **DVC** - Data version control
+        - Version control for large datasets
+        - Reproducible data pipelines
+        - Audit trails for compliance
+        
+        **Great Expectations** - Data quality
+        - Automated data validation
+        - Quality checks before calculations
+        - Compliance reporting
+        
+        **Prefect** - Workflow orchestration
+        - Robust data pipeline management
+        - Automatic retry and error handling
+        - Observable workflow execution
+        """)
+    
+    with col2:
+        st.markdown("""
+        #### 🏦 Fund Accounting Applications
+        
+        **NAV Calculation Automation**
+        - Automated daily NAV calculations
+        - Data quality checks before processing
+        - Model-driven price validation
+        
+        **Investor Behavior Prediction**
+        - Redemption forecasting models
+        - Subscription pattern analysis
+        - Liquidity planning optimization
+        
+        **Risk Management**
+        - Fraud detection in transactions
+        - Portfolio risk assessment
+        - Regulatory compliance monitoring
+        
+        **Reporting Automation**
+        - Automated P&L generation
+        - Regulatory report creation
+        - Performance attribution analysis
+        """)
+    
+    # Success metrics
+    st.markdown("---")
+    st.subheader("📈 Expected Benefits")
+    
+    metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+    
+    with metric_col1:
+        st.metric("Process Automation", "85%", "Time savings")
+    with metric_col2:
+        st.metric("Error Reduction", "95%", "Accuracy improvement")
+    with metric_col3:
+        st.metric("Compliance", "100%", "Audit trail coverage")
+    with metric_col4:
+        st.metric("Scalability", "10x", "Fund capacity increase")
+
+with mlops_tabs[1]:
+    st.subheader("📊 MLflow: Model Tracking for Fund Management")
+    
+    st.markdown("""
+    ### MLflow in Fund Accounting Context
+    
+    MLflow helps track, manage, and deploy machine learning models used in fund operations.
+    Common applications include redemption prediction, fraud detection, and portfolio optimization.
+    """)
+    
+    # Simulated MLflow experiment tracking
+    st.markdown("#### 🧪 Example: Investor Redemption Prediction Model")
+    
+    # Create mock experiment data
+    import random
+    import datetime
+    
+    experiment_data = []
+    model_types = ["Random Forest", "XGBoost", "Neural Network", "SVM", "Logistic Regression"]
+    
+    for i in range(10):
+        experiment_data.append({
+            "Run ID": f"run_{i+1:03d}",
+            "Model": random.choice(model_types),
+            "Accuracy": round(random.uniform(0.75, 0.95), 3),
+            "Precision": round(random.uniform(0.70, 0.90), 3),
+            "Recall": round(random.uniform(0.65, 0.85), 3),
+            "F1 Score": round(random.uniform(0.68, 0.87), 3),
+            "Training Time": f"{random.randint(5, 45)} min",
+            "Data Version": f"v1.{random.randint(1, 5)}",
+            "Status": random.choice(["Completed", "Running", "Failed"]),
+            "Created": (datetime.datetime.now() - datetime.timedelta(days=random.randint(1, 30))).strftime("%Y-%m-%d")
+        })
+    
+    experiment_df = pd.DataFrame(experiment_data)
+    
+    # Display experiment tracking table
+    st.markdown("**Experiment Tracking Dashboard**")
+    st.dataframe(experiment_df, use_container_width=True)
+    
+    # Model performance comparison
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Model Performance Comparison**")
+        if PLOTLY_AVAILABLE:
+            fig_performance = px.scatter(
+                experiment_df,
+                x='Precision',
+                y='Recall',
+                size='Accuracy',
+                color='Model',
+                hover_data=['F1 Score', 'Run ID'],
+                title="Model Performance: Precision vs Recall"
+            )
+            fig_performance.update_layout(height=400)
+            st.plotly_chart(fig_performance, use_container_width=True, key="mlflow_performance")
+        else:
+            st.info("Install Plotly for interactive performance visualization")
+    
+    with col2:
+        st.markdown("**Best Performing Models**")
+        top_models = experiment_df.nlargest(3, 'F1 Score')[['Model', 'F1 Score', 'Accuracy', 'Run ID']]
+        
+        for idx, row in top_models.iterrows():
+            st.markdown(f"""
+            **#{idx+1}: {row['Model']}** (Run: {row['Run ID']})
+            - F1 Score: {row['F1 Score']:.3f}
+            - Accuracy: {row['Accuracy']:.3f}
+            """)
+    
+    # MLflow features demonstration
+    st.markdown("---")
+    st.markdown("#### 🎯 MLflow Key Features")
+    
+    feature_col1, feature_col2, feature_col3 = st.columns(3)
+    
+    with feature_col1:
+        st.markdown("""
+        **Experiment Tracking**
+        - Log parameters, metrics, artifacts
+        - Compare model performance
+        - Track data versions
+        - Reproducible experiments
+        """)
+    
+    with feature_col2:
+        st.markdown("""
+        **Model Registry**
+        - Centralized model store
+        - Version management
+        - Stage transitions (Dev → Staging → Prod)
+        - Model lineage tracking
+        """)
+    
+    with feature_col3:
+        st.markdown("""
+        **Model Deployment**
+        - REST API serving
+        - Batch inference
+        - Real-time predictions
+        - A/B testing support
+        """)
+    
+    # Implementation code example
+    with st.expander("💻 Implementation Example"):
+        st.code("""
+# Example: MLflow tracking for redemption prediction model
+
+import mlflow
+import mlflow.sklearn
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+
+# Start MLflow experiment
+mlflow.set_experiment("investor_redemption_prediction")
+
+with mlflow.start_run():
+    # Log parameters
+    mlflow.log_param("model_type", "RandomForest")
+    mlflow.log_param("n_estimators", 100)
+    mlflow.log_param("max_depth", 10)
+    mlflow.log_param("data_version", "v1.3")
+    
+    # Train model
+    model = RandomForestClassifier(n_estimators=100, max_depth=10)
+    model.fit(X_train, y_train)
+    
+    # Make predictions
+    y_pred = model.predict(X_test)
+    
+    # Log metrics
+    mlflow.log_metric("accuracy", accuracy_score(y_test, y_pred))
+    mlflow.log_metric("precision", precision_score(y_test, y_pred))
+    mlflow.log_metric("recall", recall_score(y_test, y_pred))
+    
+    # Log model
+    mlflow.sklearn.log_model(model, "redemption_model")
+    
+    # Log artifacts (e.g., feature importance plot)
+    plt.savefig("feature_importance.png")
+    mlflow.log_artifact("feature_importance.png")
+
+print("Experiment logged to MLflow!")
+        """, language="python")
+
+with mlops_tabs[2]:
+    st.subheader("✅ Great Expectations: Data Quality for Fund Operations")
+    
+    st.markdown("""
+    ### Data Quality in Fund Accounting
+    
+    Great Expectations ensures data quality and integrity before critical fund calculations.
+    It's essential for NAV calculations, regulatory compliance, and investor reporting.
+    """)
+    
+    # Simulate data quality checks on NAV data
+    st.markdown("#### 🔍 Example: Daily NAV Data Quality Checks")
+    
+    # Create mock data quality results
+    expectations_results = [
+        {
+            "Expectation": "NAV values must be non-null",
+            "Status": "✅ PASSED",
+            "Details": "3,247 of 3,247 values are non-null (100%)",
+            "Critical": True
+        },
+        {
+            "Expectation": "NAV prices must be positive",
+            "Status": "✅ PASSED", 
+            "Details": "All 3,247 NAV values are > 0",
+            "Critical": True
+        },
+        {
+            "Expectation": "Daily NAV change must be < 10%",
+            "Status": "⚠️ WARNING",
+            "Details": "2 funds exceeded 10% daily change threshold",
+            "Critical": True
+        },
+        {
+            "Expectation": "Fund IDs must match registry",
+            "Status": "✅ PASSED",
+            "Details": "All 187 fund IDs found in master registry",
+            "Critical": True
+        },
+        {
+            "Expectation": "Trade dates must be valid business days",
+            "Status": "✅ PASSED",
+            "Details": "All 3,247 dates are valid business days",
+            "Critical": False
+        },
+        {
+            "Expectation": "Currency codes must be ISO 4217",
+            "Status": "❌ FAILED",
+            "Details": "5 invalid currency codes found (XYZ, ABC)",
+            "Critical": False
+        }
+    ]
+    
+    # Display expectations results
+    expectations_df = pd.DataFrame(expectations_results)
+    
+    # Color code the status
+    def color_status(val):
+        if "PASSED" in val:
+            return 'background-color: #d4edda; color: #155724'
+        elif "WARNING" in val:
+            return 'background-color: #fff3cd; color: #856404'
+        elif "FAILED" in val:
+            return 'background-color: #f8d7da; color: #721c24'
+        return ''
+    
+    styled_df = expectations_df.style.applymap(color_status, subset=['Status'])
+    st.dataframe(styled_df, use_container_width=True)
+    
+    # Data quality metrics
+    st.markdown("---")
+    st.markdown("#### 📊 Data Quality Summary")
+    
+    dq_col1, dq_col2, dq_col3, dq_col4 = st.columns(4)
+    
+    passed_count = len([r for r in expectations_results if "PASSED" in r["Status"]])
+    warning_count = len([r for r in expectations_results if "WARNING" in r["Status"]])
+    failed_count = len([r for r in expectations_results if "FAILED" in r["Status"]])
+    critical_failed = len([r for r in expectations_results if "FAILED" in r["Status"] and r["Critical"]])
+    
+    with dq_col1:
+        st.metric("Tests Passed", f"{passed_count}/6", f"{passed_count/6*100:.0f}%")
+    with dq_col2:
+        st.metric("Warnings", warning_count, "Non-blocking")
+    with dq_col3:
+        st.metric("Failed Tests", failed_count, "Needs attention")
+    with dq_col4:
+        st.metric("Critical Failures", critical_failed, "⚠️ Blocking" if critical_failed > 0 else "✅ Safe")
+    
+    # Data quality trends
+    if PLOTLY_AVAILABLE:
+        st.markdown("#### 📈 Data Quality Trends (Last 30 Days)")
+        
+        # Generate mock trend data
+        import datetime
+        dates = [datetime.date.today() - datetime.timedelta(days=i) for i in range(30, 0, -1)]
+        
+        trend_data = {
+            'Date': dates,
+            'Passed': [random.randint(85, 100) for _ in range(30)],
+            'Warnings': [random.randint(0, 10) for _ in range(30)],
+            'Failed': [random.randint(0, 5) for _ in range(30)]
+        }
+        
+        trend_df = pd.DataFrame(trend_data)
+        
+        fig_quality_trend = px.line(
+            trend_df, 
+            x='Date', 
+            y=['Passed', 'Warnings', 'Failed'],
+            title="Data Quality Trends - Daily Test Results",
+            labels={'value': 'Number of Tests', 'variable': 'Status'},
+            color_discrete_map={'Passed': 'green', 'Warnings': 'orange', 'Failed': 'red'}
+        )
+        fig_quality_trend.update_layout(height=400)
+        st.plotly_chart(fig_quality_trend, use_container_width=True, key="data_quality_trend")
+    
+    # Great Expectations features
+    st.markdown("---")
+    st.markdown("#### 🎯 Great Expectations Features")
+    
+    ge_col1, ge_col2, ge_col3 = st.columns(3)
+    
+    with ge_col1:
+        st.markdown("""
+        **Data Validation**
+        - Automated quality checks
+        - Custom business rules
+        - Statistical validations
+        - Data profiling
+        """)
+    
+    with ge_col2:
+        st.markdown("""
+        **Documentation**
+        - Auto-generated data docs
+        - Expectation suites
+        - Validation results
+        - Data lineage tracking
+        """)
+    
+    with ge_col3:
+        st.markdown("""
+        **Integration**
+        - Pipeline integration
+        - Alert notifications
+        - CI/CD workflows
+        - Database connectors
+        """)
+    
+    # Implementation example
+    with st.expander("💻 Great Expectations Implementation"):
+        st.code("""
+# Example: Data quality checks for daily NAV data
+
+import great_expectations as ge
+from great_expectations.dataset import PandasDataset
+
+# Load NAV data with Great Expectations
+nav_df = ge.read_csv("daily_nav_data.csv")
+
+# Define expectations (data quality rules)
+nav_df.expect_column_values_to_not_be_null("nav_per_share")
+nav_df.expect_column_values_to_be_between("nav_per_share", min_value=0)
+nav_df.expect_column_values_to_be_in_set("fund_id", value_set=valid_fund_ids)
+nav_df.expect_column_values_to_match_regex("currency", "^[A-Z]{3}$")
+
+# Custom expectation for daily NAV change
+def expect_daily_nav_change_to_be_reasonable(df, column, max_change=0.10):
+    df_sorted = df.sort_values(['fund_id', 'nav_date'])
+    df_sorted['daily_change'] = df_sorted.groupby('fund_id')[column].pct_change()
+    extreme_changes = df_sorted[abs(df_sorted['daily_change']) > max_change]
+    
+    return {
+        "success": len(extreme_changes) == 0,
+        "result": {
+            "observed_value": len(extreme_changes),
+            "details": extreme_changes[['fund_id', 'nav_date', 'daily_change']].to_dict('records')
+        }
+    }
+
+# Run validation
+validation_results = nav_df.validate()
+
+# Generate data documentation
+context = ge.DataContext()
+checkpoint = context.get_checkpoint("nav_data_quality")
+results = checkpoint.run()
+
+if results["success"]:
+    print("✅ All data quality checks passed!")
+    # Proceed with NAV calculations
+else:
+    print("❌ Data quality issues found:")
+    for result in results["run_results"]:
+        if not result["validation_result"]["success"]:
+            print(f"- {result['expectation_type']}: {result['kwargs']}")
+    # Alert team and halt processing
+        """, language="python")
+
+with mlops_tabs[3]:
+    st.subheader("🔄 Prefect: Workflow Management for Fund Operations")
+    
+    st.markdown("""
+    ### Prefect for Robust Fund Accounting Workflows
+    
+    Prefect orchestrates complex data pipelines for fund accounting, ensuring reliable execution
+    of daily NAV calculations, P&L generation, and regulatory reporting with automatic retry
+    and comprehensive monitoring.
+    """)
+    
+    # Simulate a fund accounting workflow with Prefect
+    st.markdown("#### 🏗️ Example: Daily Fund Accounting Pipeline")
+    
+    # Create mock workflow data
+    workflow_tasks = [
+        {
+            "Task": "Fetch Market Data",
+            "Status": "✅ Completed",
+            "Duration": "2m 34s",
+            "Start Time": "06:00:00",
+            "End Time": "06:02:34",
+            "Retries": 0,
+            "Dependencies": [],
+            "Output": "4,247 securities updated"
+        },
+        {
+            "Task": "Validate Trade Files",
+            "Status": "✅ Completed", 
+            "Duration": "1m 12s",
+            "Start Time": "06:02:35",
+            "End Time": "06:03:47",
+            "Retries": 1,
+            "Dependencies": ["Fetch Market Data"],
+            "Output": "3,128 trades validated"
+        },
+        {
+            "Task": "Calculate Portfolio Values",
+            "Status": "✅ Completed",
+            "Duration": "4m 56s", 
+            "Start Time": "06:03:48",
+            "End Time": "06:08:44",
+            "Retries": 0,
+            "Dependencies": ["Fetch Market Data", "Validate Trade Files"],
+            "Output": "187 portfolios valued"
+        },
+        {
+            "Task": "Compute NAV",
+            "Status": "🔄 Running",
+            "Duration": "2m 18s",
+            "Start Time": "06:08:45",
+            "End Time": "-",
+            "Retries": 0,
+            "Dependencies": ["Calculate Portfolio Values"],
+            "Output": "124/187 funds completed"
+        },
+        {
+            "Task": "Generate P&L Reports",
+            "Status": "⏸️ Waiting",
+            "Duration": "-",
+            "Start Time": "-",
+            "End Time": "-", 
+            "Retries": 0,
+            "Dependencies": ["Compute NAV"],
+            "Output": "Pending NAV completion"
+        },
+        {
+            "Task": "Regulatory Compliance Check",
+            "Status": "⏸️ Waiting",
+            "Duration": "-",
+            "Start Time": "-", 
+            "End Time": "-",
+            "Retries": 0,
+            "Dependencies": ["Generate P&L Reports"],
+            "Output": "Awaiting P&L data"
+        },
+        {
+            "Task": "Distribute Client Reports",
+            "Status": "⏸️ Waiting",
+            "Duration": "-",
+            "Start Time": "-",
+            "End Time": "-",
+            "Retries": 0,
+            "Dependencies": ["Regulatory Compliance Check"],
+            "Output": "Final step pending"
+        }
+    ]
+    
+    workflow_df = pd.DataFrame(workflow_tasks)
+    
+    # Display workflow status
+    st.markdown("**Current Workflow Execution Status**")
+    
+    # Color code status
+    def style_status(val):
+        if "Completed" in val:
+            return 'background-color: #d4edda; color: #155724'
+        elif "Running" in val:
+            return 'background-color: #cce5ff; color: #004085'
+        elif "Waiting" in val:
+            return 'background-color: #f8f9fa; color: #6c757d'
+        elif "Failed" in val:
+            return 'background-color: #f8d7da; color: #721c24'
+        return ''
+    
+    styled_workflow = workflow_df.style.applymap(style_status, subset=['Status'])
+    st.dataframe(styled_workflow, use_container_width=True)
+    
+    # Workflow progress metrics
+    st.markdown("---")
+    st.markdown("#### 📊 Pipeline Progress")
+    
+    progress_col1, progress_col2, progress_col3, progress_col4 = st.columns(4)
+    
+    completed_tasks = len([t for t in workflow_tasks if "Completed" in t["Status"]])
+    running_tasks = len([t for t in workflow_tasks if "Running" in t["Status"]])
+    waiting_tasks = len([t for t in workflow_tasks if "Waiting" in t["Status"]])
+    total_tasks = len(workflow_tasks)
+    
+    with progress_col1:
+        st.metric("Total Progress", f"{completed_tasks}/{total_tasks}", f"{completed_tasks/total_tasks*100:.0f}%")
+    with progress_col2:
+        st.metric("Completed Tasks", completed_tasks, "✅")
+    with progress_col3:
+        st.metric("Running Tasks", running_tasks, "🔄")
+    with progress_col4:
+        st.metric("Waiting Tasks", waiting_tasks, "⏸️")
+    
+    # Workflow visualization
+    if PLOTLY_AVAILABLE:
+        st.markdown("#### 🕒 Task Timeline Visualization")
+        
+        # Create Gantt-like chart for completed tasks
+        timeline_data = []
+        for task in workflow_tasks:
+            if task["Start Time"] != "-" and task["End Time"] != "-":
+                # Convert times to datetime for plotting
+                start_dt = datetime.datetime.strptime(f"2024-01-01 {task['Start Time']}", "%Y-%m-%d %H:%M:%S")
+                end_dt = datetime.datetime.strptime(f"2024-01-01 {task['End Time']}", "%Y-%m-%d %H:%M:%S")
+                
+                timeline_data.append({
+                    'Task': task['Task'],
+                    'Start': start_dt,
+                    'Finish': end_dt,
+                    'Status': task['Status'],
+                    'Duration': task['Duration'],
+                    'Retries': task['Retries']
+                })
+        
+        if timeline_data:
+            timeline_df = pd.DataFrame(timeline_data)
+            
+            # Create Gantt chart
+            fig_timeline = px.timeline(
+                timeline_df,
+                x_start="Start",
+                x_end="Finish", 
+                y="Task",
+                color="Status",
+                title="Fund Accounting Pipeline - Task Execution Timeline",
+                hover_data=["Duration", "Retries"]
+            )
+            
+            fig_timeline.update_layout(
+                height=400,
+                xaxis_title="Time",
+                yaxis_title="Tasks"
+            )
+            
+            st.plotly_chart(fig_timeline, use_container_width=True, key="prefect_timeline")
+    
+    # Workflow dependency graph visualization
+    if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
+        st.markdown("#### 🔗 Task Dependency Graph")
+        
+        try:
+            # Create dependency graph
+            G_workflow = nx.DiGraph()
+            
+            # Add task nodes
+            for task in workflow_tasks:
+                status_color = {
+                    "✅ Completed": "green",
+                    "🔄 Running": "blue", 
+                    "⏸️ Waiting": "gray",
+                    "❌ Failed": "red"
+                }.get(task["Status"], "gray")
+                
+                G_workflow.add_node(task["Task"], status=task["Status"], color=status_color)
+            
+            # Add dependency edges
+            for task in workflow_tasks:
+                for dep in task["Dependencies"]:
+                    G_workflow.add_edge(dep, task["Task"])
+            
+            # Create layout
+            pos_workflow = nx.spring_layout(G_workflow, k=2, iterations=50)
+            
+            # Prepare Plotly data
+            edge_x, edge_y = [], []
+            for edge in G_workflow.edges():
+                x0, y0 = pos_workflow[edge[0]]
+                x1, y1 = pos_workflow[edge[1]]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+            
+            # Create edge trace
+            edge_trace = go.Scatter(
+                x=edge_x, y=edge_y,
+                line=dict(width=2, color='#888'),
+                hoverinfo='none',
+                mode='lines'
+            )
+            
+            # Prepare node data
+            node_x, node_y, node_colors, node_text, node_hover = [], [], [], [], []
+            
+            for node in G_workflow.nodes():
+                x, y = pos_workflow[node]
+                node_x.append(x)
+                node_y.append(y)
+                
+                status = G_workflow.nodes[node]['status']
+                color = G_workflow.nodes[node]['color']
+                
+                node_colors.append(color)
+                node_text.append(node.replace(' ', '<br>'))  # Break long names
+                node_hover.append(f"<b>{node}</b><br>Status: {status}")
+            
+            # Create node trace
+            node_trace = go.Scatter(
+                x=node_x, y=node_y,
+                mode='markers+text',
+                hoverinfo='text',
+                hovertext=node_hover,
+                text=node_text,
+                textposition="middle center",
+                textfont=dict(size=10, color="white"),
+                marker=dict(
+                    size=40,
+                    color=node_colors,
+                    line=dict(width=2, color='white')
+                )
+            )
+            
+            # Create figure
+            fig_deps = go.Figure(data=[edge_trace, node_trace])
+            fig_deps.update_layout(
+                title="Task Dependency Flow",
+                showlegend=False,
+                hovermode='closest',
+                margin=dict(b=20,l=5,r=5,t=40),
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                height=500
+            )
+            
+            st.plotly_chart(fig_deps, use_container_width=True, key="prefect_deps")
+            
+        except Exception as e:
+            st.warning(f"Dependency graph requires NetworkX library: {str(e)}")
+    
+    # Historical workflow performance
+    if PLOTLY_AVAILABLE:
+        st.markdown("#### 📈 Historical Pipeline Performance (Last 30 Days)")
+        
+        # Generate mock historical data
+        hist_dates = [datetime.date.today() - datetime.timedelta(days=i) for i in range(30, 0, -1)]
+        
+        historical_data = {
+            'Date': hist_dates,
+            'Success_Rate': [random.uniform(0.92, 1.0) for _ in range(30)],
+            'Avg_Duration': [random.uniform(15, 25) for _ in range(30)],  # minutes
+            'Failed_Tasks': [random.randint(0, 3) for _ in range(30)],
+            'Retry_Count': [random.randint(0, 8) for _ in range(30)]
+        }
+        
+        hist_df = pd.DataFrame(historical_data)
+        
+        # Create performance dashboard
+        perf_col1, perf_col2 = st.columns(2)
+        
+        with perf_col1:
+            fig_success = px.line(
+                hist_df,
+                x='Date',
+                y='Success_Rate',
+                title="Pipeline Success Rate",
+                labels={'Success_Rate': 'Success Rate', 'Date': 'Date'}
+            )
+            fig_success.update_traces(line_color='green')
+            fig_success.update_layout(height=300, yaxis=dict(range=[0.9, 1.0]))
+            st.plotly_chart(fig_success, use_container_width=True, key="prefect_success")
+        
+        with perf_col2:
+            fig_duration = px.line(
+                hist_df,
+                x='Date', 
+                y='Avg_Duration',
+                title="Average Pipeline Duration",
+                labels={'Avg_Duration': 'Duration (minutes)', 'Date': 'Date'}
+            )
+            fig_duration.update_traces(line_color='blue')
+            fig_duration.update_layout(height=300)
+            st.plotly_chart(fig_duration, use_container_width=True, key="prefect_duration")
+    
+    # Prefect features overview
+    st.markdown("---")
+    st.markdown("#### 🎯 Prefect Key Features")
+    
+    prefect_col1, prefect_col2, prefect_col3 = st.columns(3)
+    
+    with prefect_col1:
+        st.markdown("""
+        **Workflow Orchestration**
+        - Task dependencies management
+        - Parallel execution support
+        - Dynamic workflow generation
+        - Conditional logic handling
+        """)
+    
+    with prefect_col2:
+        st.markdown("""
+        **Reliability & Monitoring**
+        - Automatic retry mechanisms
+        - Failure handling strategies
+        - Real-time status monitoring
+        - Comprehensive logging
+        """)
+    
+    with prefect_col3:
+        st.markdown("""
+        **Scaling & Deployment**
+        - Cloud and on-premise deployment
+        - Kubernetes integration
+        - Resource optimization
+        - Multi-environment support
+        """)
+    
+    # Alert management
+    st.markdown("---")
+    st.markdown("#### 🚨 Alert Management")
+    
+    alert_col1, alert_col2 = st.columns(2)
+    
+    with alert_col1:
+        st.markdown("**Recent Alerts (Last 7 Days)**")
+        alerts_data = [
+            {"Date": "2024-01-03", "Type": "WARNING", "Message": "Trade validation took 3x longer than usual", "Resolved": True},
+            {"Date": "2024-01-02", "Type": "INFO", "Message": "Market data fetch completed with 1 retry", "Resolved": True},
+            {"Date": "2024-01-01", "Type": "ERROR", "Message": "P&L report generation failed - missing price data", "Resolved": False}
+        ]
+        
+        for alert in alerts_data:
+            status_emoji = "✅" if alert["Resolved"] else "🔴"
+            type_color = {"WARNING": "🟡", "INFO": "🔵", "ERROR": "🔴"}[alert["Type"]]
+            st.markdown(f"{status_emoji} {type_color} **{alert['Date']}**: {alert['Message']}")
+    
+    with alert_col2:
+        st.markdown("**Alert Configuration**")
+        st.markdown("""
+        - **Critical Task Failures**: Immediate email + Slack
+        - **Performance Degradation**: Daily digest
+        - **Data Quality Issues**: Real-time notifications
+        - **Compliance Violations**: Escalation to managers
+        """)
+    
+    # Implementation example
+    with st.expander("💻 Prefect Implementation Example"):
+        st.code("""
+# Example: Daily Fund Accounting Pipeline with Prefect
+
+from prefect import flow, task
+from prefect.tasks import task_input_hash
+from datetime import datetime, timedelta
+import pandas as pd
+
+@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=1))
+def fetch_market_data(date: str) -> pd.DataFrame:
+    \"\"\"Fetch market data for given date with caching\"\"\"
+    # Implementation to fetch from Bloomberg, Reuters, etc.
+    print(f"📊 Fetching market data for {date}")
+    # ... fetch logic ...
+    return market_data
+
+@task(retries=3, retry_delay_seconds=60)
+def validate_trades(trade_file: str) -> dict:
+    \"\"\"Validate trade file with automatic retries\"\"\"
+    try:
+        # Implementation of trade validation logic
+        trades_df = pd.read_csv(trade_file)
+        
+        # Validation checks
+        assert len(trades_df) > 0, "Trade file is empty"
+        assert trades_df['trade_amount'].notna().all(), "Missing trade amounts"
+        
+        print(f"✅ Validated {len(trades_df)} trades")
+        return {"status": "success", "trade_count": len(trades_df)}
+        
+    except Exception as e:
+        print(f"❌ Trade validation failed: {str(e)}")
+        raise
+
+@task
+def calculate_portfolio_values(market_data: pd.DataFrame, trades: dict) -> pd.DataFrame:
+    \"\"\"Calculate portfolio values using market data and trades\"\"\"
+    # Implementation of portfolio valuation logic
+    print(f"💰 Calculating values for {trades['trade_count']} trades")
+    # ... calculation logic ...
+    return portfolio_values
+
+@task
+def compute_nav(portfolio_values: pd.DataFrame) -> dict:
+    \"\"\"Compute NAV for all funds\"\"\"
+    nav_results = {}
+    for fund_id in portfolio_values['fund_id'].unique():
+        fund_data = portfolio_values[portfolio_values['fund_id'] == fund_id]
+        total_value = fund_data['market_value'].sum()
+        shares_outstanding = fund_data['shares_outstanding'].iloc[0]
+        nav = total_value / shares_outstanding
+        nav_results[fund_id] = nav
+    
+    print(f"📊 Computed NAV for {len(nav_results)} funds")
+    return nav_results
+
+@task
+def generate_reports(nav_data: dict) -> str:
+    \"\"\"Generate P&L and regulatory reports\"\"\"
+    # Implementation of report generation
+    report_path = f"reports/daily_pnl_{datetime.now().strftime('%Y%m%d')}.pdf"
+    print(f"📄 Generated reports: {report_path}")
+    return report_path
+
+@flow(name="Daily Fund Accounting Pipeline")
+def daily_fund_accounting_flow(processing_date: str = None):
+    \"\"\"Main flow for daily fund accounting operations\"\"\"
+    
+    if processing_date is None:
+        processing_date = datetime.now().strftime('%Y-%m-%d')
+    
+    print(f"🚀 Starting daily fund accounting for {processing_date}")
+    
+    # Parallel data fetching
+    market_data = fetch_market_data(processing_date)
+    trades = validate_trades(f"trades_{processing_date}.csv")
+    
+    # Sequential processing
+    portfolio_values = calculate_portfolio_values(market_data, trades)
+    nav_data = compute_nav(portfolio_values)
+    report_path = generate_reports(nav_data)
+    
+    print(f"✅ Pipeline completed successfully!")
+    return {
+        "status": "completed",
+        "nav_count": len(nav_data),
+        "report_path": report_path
+    }
+
+# Schedule the flow
+if __name__ == "__main__":
+    # Run immediately
+    result = daily_fund_accounting_flow()
+    
+    # Or deploy with scheduling
+    daily_fund_accounting_flow.deploy(
+        name="fund-accounting-daily",
+        schedule="0 6 * * 1-5",  # 6 AM weekdays
+        tags=["fund-accounting", "daily", "production"]
+    )
+        """, language="python")
+
+with mlops_tabs[4]:
+    st.subheader("📦 Model Deployment in Fund Operations")
+    
+    st.markdown("""
+    ### Model Deployment for Fund Accounting
+    
+    Deploy machine learning models for real-time predictions in fund operations,
+    from fraud detection APIs to NAV prediction services and regulatory compliance automation.
+    """)
+    
+    # Model deployment dashboard
+    st.markdown("#### 🚀 Current Model Deployments")
+    
+    # Mock deployed models data
+    deployed_models = [
+        {
+            "Model Name": "Fraud Detection API",
+            "Version": "v2.1.3",
+            "Status": "🟢 Active",
+            "Environment": "Production",
+            "Requests/Day": "~12,500",
+            "Latency": "45ms",
+            "Accuracy": "94.2%",
+            "Last Updated": "2024-01-02",
+            "Endpoint": "/api/v2/fraud-detection"
+        },
+        {
+            "Model Name": "NAV Prediction Service",
+            "Version": "v1.8.1",
+            "Status": "🟢 Active", 
+            "Environment": "Production",
+            "Requests/Day": "~850",
+            "Latency": "120ms",
+            "Accuracy": "89.7%",
+            "Last Updated": "2023-12-28",
+            "Endpoint": "/api/v1/nav-predict"
+        },
+        {
+            "Model Name": "Redemption Forecast",
+            "Version": "v3.0.0",
+            "Status": "🟡 Staging",
+            "Environment": "Staging",
+            "Requests/Day": "~200",
+            "Latency": "85ms",
+            "Accuracy": "91.8%",
+            "Last Updated": "2024-01-04",
+            "Endpoint": "/api/v3/redemption-forecast"
+        },
+        {
+            "Model Name": "Portfolio Risk Classifier",
+            "Version": "v1.2.0",
+            "Status": "🔴 Failed",
+            "Environment": "Production",
+            "Requests/Day": "0",
+            "Latency": "N/A",
+            "Accuracy": "N/A",
+            "Last Updated": "2024-01-03",
+            "Endpoint": "/api/v1/risk-classify"
+        }
+    ]
+    
+    models_df = pd.DataFrame(deployed_models)
+    
+    # Color code status column
+    def style_model_status(val):
+        if "Active" in val:
+            return 'background-color: #d4edda; color: #155724'
+        elif "Staging" in val:
+            return 'background-color: #fff3cd; color: #856404'
+        elif "Failed" in val:
+            return 'background-color: #f8d7da; color: #721c24'
+        return ''
+    
+    styled_models = models_df.style.applymap(style_model_status, subset=['Status'])
+    st.dataframe(styled_models, use_container_width=True)
+    
+    # Deployment metrics
+    st.markdown("---")
+    st.markdown("#### 📊 Deployment Metrics")
+    
+    deploy_col1, deploy_col2, deploy_col3, deploy_col4 = st.columns(4)
+    
+    active_models = len([m for m in deployed_models if "Active" in m["Status"]])
+    staging_models = len([m for m in deployed_models if "Staging" in m["Status"]])
+    failed_models = len([m for m in deployed_models if "Failed" in m["Status"]])
+    total_requests = sum([int(m["Requests/Day"].replace("~", "").replace(",", "")) for m in deployed_models if m["Requests/Day"] != "0"])
+    
+    with deploy_col1:
+        st.metric("Active Models", active_models, "Production ready")
+    with deploy_col2:
+        st.metric("Models in Staging", staging_models, "Testing phase")
+    with deploy_col3:
+        st.metric("Failed Deployments", failed_models, "⚠️ Needs attention")
+    with deploy_col4:
+        st.metric("Daily API Calls", f"{total_requests:,}", "Across all models")
+    
+    # Model performance monitoring
+    if PLOTLY_AVAILABLE:
+        st.markdown("#### 📈 Model Performance Trends")
+        
+        # Generate mock performance data
+        performance_dates = [datetime.date.today() - datetime.timedelta(days=i) for i in range(14, 0, -1)]
+        
+        perf_data = {
+            'Date': performance_dates * 2,  # Two models
+            'Model': ['Fraud Detection API'] * 14 + ['NAV Prediction Service'] * 14,
+            'Accuracy': [random.uniform(0.92, 0.96) for _ in range(14)] + [random.uniform(0.85, 0.92) for _ in range(14)],
+            'Latency': [random.uniform(35, 55) for _ in range(14)] + [random.uniform(100, 140) for _ in range(14)],
+            'Requests': [random.randint(11000, 14000) for _ in range(14)] + [random.randint(700, 1000) for _ in range(14)]
+        }
+        
+        perf_df = pd.DataFrame(perf_data)
+        
+        perf_viz_col1, perf_viz_col2 = st.columns(2)
+        
+        with perf_viz_col1:
+            fig_accuracy = px.line(
+                perf_df,
+                x='Date',
+                y='Accuracy',
+                color='Model',
+                title="Model Accuracy Over Time",
+                labels={'Accuracy': 'Accuracy (%)', 'Date': 'Date'}
+            )
+            fig_accuracy.update_layout(height=350, yaxis=dict(range=[0.8, 1.0]))
+            st.plotly_chart(fig_accuracy, use_container_width=True, key="model_accuracy")
+        
+        with perf_viz_col2:
+            fig_latency = px.line(
+                perf_df,
+                x='Date',
+                y='Latency',
+                color='Model',
+                title="API Response Latency",
+                labels={'Latency': 'Latency (ms)', 'Date': 'Date'}
+            )
+            fig_latency.update_layout(height=350)
+            st.plotly_chart(fig_latency, use_container_width=True, key="model_latency")
+    
+    # Deployment architecture
+    st.markdown("---")
+    st.markdown("#### 🏗️ Deployment Architecture")
+    
+    arch_col1, arch_col2, arch_col3 = st.columns(3)
+    
+    with arch_col1:
+        st.markdown("""
+        **Container Orchestration**
+        - Docker containerization
+        - Kubernetes deployment
+        - Auto-scaling based on load
+        - Health check monitoring
+        """)
+    
+    with arch_col2:
+        st.markdown("""
+        **API Gateway**
+        - Load balancing
+        - Rate limiting
+        - Authentication/authorization
+        - Request/response logging
+        """)
+    
+    with arch_col3:
+        st.markdown("""
+        **Model Serving**
+        - REST API endpoints
+        - Batch prediction jobs
+        - Real-time inference
+        - A/B testing support
+        """)
+    
+    # Deployment strategies
+    st.markdown("---")
+    st.markdown("#### 🎯 Deployment Strategies")
+    
+    strategy_col1, strategy_col2 = st.columns(2)
+    
+    with strategy_col1:
+        st.markdown("**Current Deployment Pipeline**")
+        pipeline_steps = [
+            "1. Model training & validation",
+            "2. Container image building", 
+            "3. Security scanning",
+            "4. Staging deployment",
+            "5. Integration testing",
+            "6. Performance validation",
+            "7. Production rollout",
+            "8. Monitoring activation"
+        ]
+        
+        for step in pipeline_steps:
+            st.markdown(f"✅ {step}")
+    
+    with strategy_col2:
+        st.markdown("**Rollout Strategies Available**")
+        st.markdown("""
+        - **Blue-Green Deployment**: Zero-downtime updates
+        - **Canary Releases**: Gradual traffic shifting
+        - **Rolling Updates**: Sequential pod replacement
+        - **Feature Flags**: Runtime model switching
+        """)
+        
+        st.markdown("**Current Strategy: Blue-Green**")
+        st.progress(0.8)
+        st.caption("80% traffic on new version, 20% on previous")
+    
+    # Model registry integration
+    st.markdown("---")
+    st.markdown("#### 📚 Model Registry Integration")
+    
+    registry_col1, registry_col2 = st.columns(2)
+    
+    with registry_col1:
+        st.markdown("**Model Lifecycle Stages**")
+        
+        lifecycle_data = [
+            {"Stage": "Development", "Models": 12, "Description": "In training/testing"},
+            {"Stage": "Staging", "Models": 3, "Description": "Ready for validation"},
+            {"Stage": "Production", "Models": 2, "Description": "Serving live traffic"},
+            {"Stage": "Archived", "Models": 8, "Description": "Deprecated versions"}
+        ]
+        
+        lifecycle_df = pd.DataFrame(lifecycle_data)
+        st.dataframe(lifecycle_df, use_container_width=True)
+    
+    with registry_col2:
+        st.markdown("**Model Promotion Workflow**")
+        st.markdown("""
+        **Promotion Criteria:**
+        - ✅ Performance benchmarks met
+        - ✅ Security scan passed
+        - ✅ Integration tests passed
+        - ✅ Load testing completed
+        - ✅ Business approval obtained
+        
+        **Auto-promotion enabled for:**
+        - Minor version updates
+        - Bug fixes
+        - Performance improvements
+        """)
+    
+    # Implementation example
+    with st.expander("💻 BentoML Deployment Example"):
+        st.code("""
+# Example: Deploying a fraud detection model with BentoML
+
+import bentoml
+import pandas as pd
+from sklearn.ensemble import IsolationForest
+
+# Save trained model to BentoML model store
+@bentoml.runner.service_runner()
+class FraudDetectionRunner:
+    def __init__(self):
+        self.model = bentoml.sklearn.load_runner("fraud_detection_model:latest")
+    
+    @bentoml.handler.dataframe()
+    def predict(self, input_df: pd.DataFrame) -> pd.DataFrame:
+        # Preprocessing
+        features = self.preprocess_transaction_data(input_df)
+        
+        # Prediction
+        fraud_scores = self.model.predict(features)
+        anomaly_scores = self.model.decision_function(features)
+        
+        # Post-processing
+        results = pd.DataFrame({
+            'transaction_id': input_df['transaction_id'],
+            'fraud_probability': fraud_scores,
+            'anomaly_score': anomaly_scores,
+            'risk_level': self.classify_risk_level(fraud_scores)
+        })
+        
+        return results
+    
+    def preprocess_transaction_data(self, df):
+        # Feature engineering for fraud detection
+        features = df.copy()
+        
+        # Time-based features
+        features['hour'] = pd.to_datetime(df['timestamp']).dt.hour
+        features['day_of_week'] = pd.to_datetime(df['timestamp']).dt.dayofweek
+        
+        # Amount-based features
+        features['amount_log'] = np.log1p(df['amount'])
+        features['amount_zscore'] = (df['amount'] - df['amount'].mean()) / df['amount'].std()
+        
+        # Historical features (would come from database in practice)
+        features['avg_monthly_amount'] = df.groupby('account_id')['amount'].transform('mean')
+        features['transaction_count_last_24h'] = df.groupby('account_id').size()
+        
+        return features[['hour', 'day_of_week', 'amount_log', 'amount_zscore', 
+                        'avg_monthly_amount', 'transaction_count_last_24h']]
+    
+    def classify_risk_level(self, fraud_scores):
+        return pd.cut(fraud_scores, 
+                     bins=[0, 0.3, 0.7, 1.0], 
+                     labels=['Low', 'Medium', 'High'])
+
+# Create BentoML service
+fraud_detection_runner = FraudDetectionRunner()
+fraud_detection_service = bentoml.Service("fraud_detection_api", runners=[fraud_detection_runner])
+
+# REST API endpoint
+@fraud_detection_service.api.route("/predict", methods=["POST"])
+def predict_fraud(input_data: pd.DataFrame) -> pd.DataFrame:
+    # Validate input
+    required_fields = ['transaction_id', 'account_id', 'amount', 'timestamp', 'merchant_id']
+    missing_fields = [field for field in required_fields if field not in input_data.columns]
+    
+    if missing_fields:
+        raise ValueError(f"Missing required fields: {missing_fields}")
+    
+    # Make prediction
+    results = fraud_detection_runner.predict(input_data)
+    
+    # Log for monitoring
+    logger.info(f"Processed {len(input_data)} transactions, "
+               f"flagged {sum(results['risk_level'] == 'High')} as high risk")
+    
+    return results
+
+# Health check endpoint
+@fraud_detection_service.api.route("/health", methods=["GET"])
+def health_check():
+    return {"status": "healthy", "model_version": "v2.1.3", "timestamp": datetime.now().isoformat()}
+
+# Build and deploy
+if __name__ == "__main__":
+    # Build Bento
+    bento = bentoml.build("fraud_detection_api", 
+                         service=fraud_detection_service,
+                         description="Real-time fraud detection for fund transactions")
+    
+    # Deploy to production (example with Docker)
+    bentoml.container.build(bento, name="fraud-detection-api:v2.1.3")
+    
+    # Or deploy to Kubernetes
+    bentoml.deploy("fraud_detection_k8s", 
+                  bento=bento,
+                  config_file="k8s_deployment.yaml")
+        """, language="python")
+
+with mlops_tabs[5]:
+    st.subheader("📈 Production Monitoring & Observability")
+    
+    st.markdown("""
+    ### Comprehensive Model Monitoring
+    
+    Monitor model performance, data drift, and system health in production to ensure
+    reliable fund accounting operations and early detection of issues.
+    """)
+    
+    # Real-time monitoring dashboard
+    st.markdown("#### 🔄 Real-Time Model Health")
+    
+    # Current system status
+    health_col1, health_col2, health_col3, health_col4 = st.columns(4)
+    
+    with health_col1:
+        st.metric("System Uptime", "99.97%", "Last 30 days")
+    with health_col2:
+        st.metric("Active Alerts", "2", "🟡 1 warning, 🔴 1 critical")
+    with health_col3:
+        st.metric("Avg Response Time", "67ms", "-12ms from yesterday")
+    with health_col4:
+        st.metric("Error Rate", "0.12%", "+0.03% from last week")
+    
+    # Alert management
+    st.markdown("---")
+    st.markdown("#### 🚨 Active Alerts & Incidents")
+    
+    alerts_monitoring = [
+        {
+            "Timestamp": "2024-01-05 14:23:00",
+            "Severity": "🔴 Critical",
+            "Service": "Portfolio Risk Classifier",
+            "Alert": "Model prediction accuracy dropped below 85%",
+            "Status": "Active",
+            "Duration": "2h 15m",
+            "Assigned": "ML Engineering Team"
+        },
+        {
+            "Timestamp": "2024-01-05 09:45:00", 
+            "Severity": "🟡 Warning",
+            "Service": "NAV Prediction Service",
+            "Alert": "Data drift detected in input features",
+            "Status": "Investigating",
+            "Duration": "6h 48m",
+            "Assigned": "Data Science Team"
+        },
+        {
+            "Timestamp": "2024-01-04 16:12:00",
+            "Severity": "🟢 Info",
+            "Service": "Fraud Detection API",
+            "Alert": "High traffic volume detected",
+            "Status": "Resolved",
+            "Duration": "45m",
+            "Assigned": "DevOps Team"
+        }
+    ]
+    
+    alerts_df = pd.DataFrame(alerts_monitoring)
+    
+    def style_alert_severity(val):
+        if "Critical" in val:
+            return 'background-color: #f8d7da; color: #721c24'
+        elif "Warning" in val:
+            return 'background-color: #fff3cd; color: #856404'
+        elif "Info" in val:
+            return 'background-color: #d1ecf1; color: #0c5460'
+        return ''
+    
+    styled_alerts = alerts_df.style.applymap(style_alert_severity, subset=['Severity'])
+    st.dataframe(styled_alerts, use_container_width=True)
+    
+    # Performance monitoring charts
+    if PLOTLY_AVAILABLE:
+        st.markdown("---")
+        st.markdown("#### 📊 Performance Monitoring")
+        
+        # Generate monitoring data
+        monitor_dates = pd.date_range('2024-01-01', periods=120, freq='H')
+        
+        monitoring_data = {
+            'timestamp': monitor_dates,
+            'response_time': [random.uniform(40, 120) + 20*np.sin(i/24) for i in range(120)],
+            'throughput': [random.randint(800, 1200) + 200*np.sin(i/12) for i in range(120)],
+            'error_rate': [max(0, random.uniform(0, 0.5) + 0.3*np.sin(i/6)) for i in range(120)],
+            'cpu_usage': [random.uniform(30, 80) + 15*np.sin(i/8) for i in range(120)],
+            'memory_usage': [random.uniform(40, 85) + 10*np.sin(i/16) for i in range(120)]
+        }
+        
+        monitoring_df = pd.DataFrame(monitoring_data)
+        
+        # Create monitoring dashboard
+        monitor_col1, monitor_col2 = st.columns(2)
+        
+        with monitor_col1:
+            # Response time and throughput
+            fig_perf = px.line(
+                monitoring_df,
+                x='timestamp',
+                y=['response_time', 'throughput'],
+                title="API Performance Metrics",
+                labels={'value': 'Metric Value', 'timestamp': 'Time'},
+            )
+            
+            # Add threshold lines
+            fig_perf.add_hline(y=100, line_dash="dash", line_color="red", 
+                              annotation_text="Response Time SLA (100ms)")
+            
+            fig_perf.update_layout(height=400)
+            st.plotly_chart(fig_perf, use_container_width=True, key="perf_monitoring")
+        
+        with monitor_col2:
+            # System resources
+            fig_resources = px.line(
+                monitoring_df,
+                x='timestamp',
+                y=['cpu_usage', 'memory_usage'],
+                title="System Resource Utilization",
+                labels={'value': 'Usage (%)', 'timestamp': 'Time'}
+            )
+            
+            fig_resources.add_hline(y=80, line_dash="dash", line_color="orange",
+                                   annotation_text="Resource Alert Threshold")
+            
+            fig_resources.update_layout(height=400, yaxis=dict(range=[0, 100]))
+            st.plotly_chart(fig_resources, use_container_width=True, key="resource_monitoring")
+        
+        # Error rate monitoring
+        fig_errors = px.line(
+            monitoring_df,
+            x='timestamp',
+            y='error_rate',
+            title="Error Rate Monitoring (Last 5 Days)",
+            labels={'error_rate': 'Error Rate (%)', 'timestamp': 'Time'}
+        )
+        
+        fig_errors.add_hline(y=0.5, line_dash="dash", line_color="red",
+                            annotation_text="Error Rate SLA Threshold (0.5%)")
+        
+        fig_errors.update_traces(line_color='red')
+        fig_errors.update_layout(height=300, yaxis=dict(range=[0, 1]))
+        st.plotly_chart(fig_errors, use_container_width=True, key="error_monitoring")
+    
+    # Data drift monitoring
+    st.markdown("---")
+    st.markdown("#### 📉 Data Drift Detection")
+    
+    drift_col1, drift_col2 = st.columns(2)
+    
+    with drift_col1:
+        st.markdown("**Feature Drift Analysis**")
+        
+        # Mock drift detection results
+        drift_features = [
+            {"Feature": "transaction_amount", "Drift_Score": 0.15, "Status": "🟢 Normal", "Threshold": 0.3},
+            {"Feature": "account_balance", "Drift_Score": 0.45, "Status": "🟡 Warning", "Threshold": 0.3},
+            {"Feature": "transaction_frequency", "Drift_Score": 0.8, "Status": "🔴 Critical", "Threshold": 0.3},
+            {"Feature": "merchant_category", "Drift_Score": 0.12, "Status": "🟢 Normal", "Threshold": 0.3},
+            {"Feature": "time_of_day", "Drift_Score": 0.25, "Status": "🟢 Normal", "Threshold": 0.3}
+        ]
+        
+        drift_df = pd.DataFrame(drift_features)
+        
+        # Style drift status
+        def style_drift_status(val):
+            if "Normal" in val:
+                return 'background-color: #d4edda; color: #155724'
+            elif "Warning" in val:
+                return 'background-color: #fff3cd; color: #856404'
+            elif "Critical" in val:
+                return 'background-color: #f8d7da; color: #721c24'
+            return ''
+        
+        styled_drift = drift_df.style.applymap(style_drift_status, subset=['Status'])
+        st.dataframe(styled_drift, use_container_width=True)
+    
+    with drift_col2:
+        st.markdown("**Drift Mitigation Actions**")
+        
+        mitigation_actions = [
+            "🔄 **Auto-retrain triggered** for transaction_frequency feature",
+            "📊 **Collect more recent data** for account_balance analysis", 
+            "🎯 **Update feature engineering** pipeline scheduled for next week",
+            "⚠️ **Alert sent to data science team** for manual review",
+            "📝 **Drift report generated** and shared with stakeholders"
+        ]
+        
+        for action in mitigation_actions:
+            st.markdown(action)
+        
+        st.markdown("---")
+        st.markdown("**Drift Detection Settings**")
+        st.slider("Drift Detection Sensitivity", 0.1, 1.0, 0.3, 0.1, key="drift_sensitivity")
+        st.selectbox("Retraining Frequency", ["Daily", "Weekly", "Monthly", "On-demand"], index=1, key="retrain_freq")
+        
+        if st.button("🔄 Trigger Manual Retraining", key="manual_retrain"):
+            st.success("Manual retraining job queued successfully!")
+    
+    # Model performance degradation
+    if PLOTLY_AVAILABLE:
+        st.markdown("---")
+        st.markdown("#### 📈 Model Performance Degradation Analysis")
+        
+        # Generate performance degradation data
+        perf_dates = pd.date_range('2023-12-01', '2024-01-05', freq='D')
+        
+        degradation_data = {
+            'date': perf_dates,
+            'fraud_detection_accuracy': [0.94 - 0.001*i + random.uniform(-0.01, 0.01) for i in range(len(perf_dates))],
+            'nav_prediction_mse': [0.15 + 0.002*i + random.uniform(-0.02, 0.02) for i in range(len(perf_dates))],
+            'redemption_forecast_mae': [0.08 + 0.001*i + random.uniform(-0.005, 0.005) for i in range(len(perf_dates))]
+        }
+        
+        degradation_df = pd.DataFrame(degradation_data)
+        
+        # Model performance over time
+        fig_degradation = px.line(
+            degradation_df,
+            x='date',
+            y=['fraud_detection_accuracy', 'nav_prediction_mse', 'redemption_forecast_mae'], 
+            title="Model Performance Trends (Last 35 Days)",
+            labels={'value': 'Performance Metric', 'date': 'Date'}
+        )
+        
+        # Add performance threshold lines
+        fig_degradation.add_hline(y=0.90, line_dash="dash", line_color="red",
+                                 annotation_text="Minimum Accuracy Threshold")
+        
+        fig_degradation.update_layout(height=400)
+        st.plotly_chart(fig_degradation, use_container_width=True, key="degradation_analysis")
+    
+    # Observability stack
+    st.markdown("---")
+    st.markdown("#### 🔍 Observability Stack")
+    
+    observability_col1, observability_col2, observability_col3 = st.columns(3)
+    
+    with observability_col1:
+        st.markdown("""
+        **Metrics Collection**
+        - Prometheus for metrics
+        - Custom business metrics
+        - Model performance KPIs
+        - Infrastructure monitoring
+        """)
+    
+    with observability_col2:
+        st.markdown("""
+        **Logging & Tracing**
+        - Centralized log aggregation
+        - Distributed tracing
+        - Error tracking
+        - Audit trail maintenance
+        """)
+    
+    with observability_col3:
+        st.markdown("""
+        **Alerting & Notification**
+        - Smart alert routing
+        - Escalation policies
+        - Integration with Slack/email
+        - On-call management
+        """)
+    
+    # Compliance and audit
+    st.markdown("---")
+    st.markdown("#### 📋 Compliance & Audit Trail")
+    
+    compliance_col1, compliance_col2 = st.columns(2)
+    
+    with compliance_col1:
+        st.markdown("**Regulatory Requirements**")
+        
+        compliance_items = [
+            {"Requirement": "Model Risk Management", "Status": "✅ Compliant", "Last Audit": "2023-12-15"},
+            {"Requirement": "Data Lineage Tracking", "Status": "✅ Compliant", "Last Audit": "2024-01-02"},
+            {"Requirement": "Bias Testing", "Status": "🟡 In Progress", "Last Audit": "2023-11-20"},
+            {"Requirement": "Explainability Reports", "Status": "✅ Compliant", "Last Audit": "2024-01-01"},
+            {"Requirement": "Change Management", "Status": "✅ Compliant", "Last Audit": "2023-12-28"}
+        ]
+        
+        compliance_df = pd.DataFrame(compliance_items)
+        st.dataframe(compliance_df, use_container_width=True)
+    
+    with compliance_col2:
+        st.markdown("**Audit Trail Summary**")
+        st.markdown("""
+        **Last 30 Days:**
+        - 🔄 47 model predictions logged
+        - 📊 12 retraining events recorded  
+        - 🚨 8 alerts generated and resolved
+        - 📝 3 compliance reports generated
+        - 👥 15 user access events logged
+        
+        **Retention Policy:**
+        - Prediction logs: 2 years
+        - Training data: 7 years
+        - Model artifacts: 5 years
+        - Audit logs: 10 years
+        """)
+        
+        if st.button("📋 Generate Compliance Report", key="compliance_report"):
+            st.success("Compliance report generated and sent to regulatory team!")
+    
+    # Implementation example
+    with st.expander("💻 Monitoring Implementation Example"):
+        st.code("""
+# Example: Production model monitoring with custom metrics
+
+import time
+import logging
+from datetime import datetime
+from prometheus_client import Counter, Histogram, Gauge
+import numpy as np
+
+# Prometheus metrics
+prediction_counter = Counter('model_predictions_total', 'Total predictions made', ['model_name', 'version'])
+prediction_latency = Histogram('model_prediction_latency_seconds', 'Prediction latency', ['model_name'])
+model_accuracy = Gauge('model_accuracy_score', 'Current model accuracy', ['model_name', 'version'])
+data_drift_score = Gauge('model_data_drift_score', 'Data drift detection score', ['model_name', 'feature'])
+
+class ModelMonitor:
+    def __init__(self, model_name, model_version, drift_threshold=0.3):
+        self.model_name = model_name
+        self.model_version = model_version
+        self.drift_threshold = drift_threshold
+        self.logger = logging.getLogger(f"{model_name}_monitor")
+        
+        # Performance tracking
+        self.recent_predictions = []
+        self.recent_actuals = []
+        self.baseline_stats = {}
+        
+    def log_prediction(self, input_data, prediction, actual=None, latency=None):
+        \"\"\"Log prediction for monitoring and analysis\"\"\"
+        
+        # Update Prometheus metrics
+        prediction_counter.labels(
+            model_name=self.model_name, 
+            version=self.model_version
+        ).inc()
+        
+        if latency:
+            prediction_latency.labels(model_name=self.model_name).observe(latency)
+        
+        # Store for performance calculation
+        self.recent_predictions.append(prediction)
+        if actual is not None:
+            self.recent_actuals.append(actual)
+        
+        # Log structured data for audit trail
+        log_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'model_name': self.model_name,
+            'model_version': self.model_version,
+            'input_features': input_data.to_dict() if hasattr(input_data, 'to_dict') else input_data,
+            'prediction': prediction,
+            'actual': actual,
+            'latency_ms': latency * 1000 if latency else None
+        }
+        
+        self.logger.info(f"Prediction logged: {log_entry}")
+        
+        # Trigger drift detection periodically
+        if len(self.recent_predictions) % 100 == 0:
+            self.check_data_drift(input_data)
+    
+    def check_data_drift(self, current_data):
+        \"\"\"Detect data drift in input features\"\"\"
+        
+        for feature in current_data.columns:
+            if feature in self.baseline_stats:
+                # Calculate drift using KL divergence approximation
+                current_mean = current_data[feature].mean()
+                current_std = current_data[feature].std()
+                
+                baseline_mean = self.baseline_stats[feature]['mean']
+                baseline_std = self.baseline_stats[feature]['std']
+                
+                # Simple drift score (normalized difference in means)
+                drift_score = abs(current_mean - baseline_mean) / (baseline_std + 1e-8)
+                
+                # Update Prometheus metric
+                data_drift_score.labels(
+                    model_name=self.model_name,
+                    feature=feature
+                ).set(drift_score)
+                
+                # Alert if drift exceeds threshold
+                if drift_score > self.drift_threshold:
+                    self.send_drift_alert(feature, drift_score)
+    
+    def calculate_performance_metrics(self):
+        \"\"\"Calculate and update model performance metrics\"\"\"
+        
+        if len(self.recent_actuals) >= 10:  # Minimum samples for reliable metrics
+            if self.model_name == "fraud_detection":
+                # Classification metrics
+                accuracy = np.mean(np.array(self.recent_predictions) == np.array(self.recent_actuals))
+                model_accuracy.labels(
+                    model_name=self.model_name,
+                    version=self.model_version
+                ).set(accuracy)
+                
+                # Alert if accuracy drops below threshold
+                if accuracy < 0.85:
+                    self.send_performance_alert("accuracy", accuracy)
+                    
+            elif self.model_name == "nav_prediction":
+                # Regression metrics
+                mse = np.mean((np.array(self.recent_predictions) - np.array(self.recent_actuals))**2)
+                
+                # Log MSE (can be converted to gauge if needed)
+                self.logger.info(f"Current MSE: {mse}")
+                
+                if mse > 0.2:  # MSE threshold
+                    self.send_performance_alert("mse", mse)
+    
+    def send_drift_alert(self, feature, drift_score):
+        \"\"\"Send alert for data drift detection\"\"\"
+        
+        alert_message = {
+            'alert_type': 'data_drift',
+            'model_name': self.model_name,
+            'feature': feature,
+            'drift_score': drift_score,
+            'threshold': self.drift_threshold,
+            'timestamp': datetime.now().isoformat(),
+            'severity': 'high' if drift_score > 0.5 else 'medium'
+        }
+        
+        self.logger.warning(f"Data drift detected: {alert_message}")
+        
+        # In practice, send to alerting system (PagerDuty, Slack, etc.)
+        # send_to_slack(alert_message)
+        # create_pagerduty_incident(alert_message)
+    
+    def send_performance_alert(self, metric_name, metric_value):
+        \"\"\"Send alert for model performance degradation\"\"\"
+        
+        alert_message = {
+            'alert_type': 'performance_degradation',
+            'model_name': self.model_name,
+            'metric': metric_name,
+            'value': metric_value,
+            'timestamp': datetime.now().isoformat(),
+            'severity': 'high'
+        }
+        
+        self.logger.error(f"Performance degradation detected: {alert_message}")
+        
+        # Trigger automatic retraining if enabled
+        if self.should_trigger_retraining(metric_name, metric_value):
+            self.trigger_retraining()
+    
+    def should_trigger_retraining(self, metric_name, metric_value):
+        \"\"\"Determine if automatic retraining should be triggered\"\"\"
+        
+        retraining_thresholds = {
+            'accuracy': 0.80,  # Retrain if accuracy drops below 80%
+            'mse': 0.25        # Retrain if MSE exceeds 0.25
+        }
+        
+        return metric_value < retraining_thresholds.get(metric_name, float('inf'))
+    
+    def trigger_retraining(self):
+        \"\"\"Trigger model retraining pipeline\"\"\"
+        
+        self.logger.info(f"Triggering automatic retraining for {self.model_name}")
+        
+        # In practice, trigger retraining job
+        # trigger_mlflow_job(self.model_name)
+        # trigger_airflow_dag(f"{self.model_name}_retrain")
+
+# Usage example
+fraud_monitor = ModelMonitor("fraud_detection", "v2.1.3")
+
+# In prediction endpoint
+@app.route('/predict', methods=['POST'])
+def predict():
+    start_time = time.time()
+    
+    input_data = pd.DataFrame(request.json)
+    prediction = model.predict(input_data)
+    
+    latency = time.time() - start_time
+    
+    # Log prediction for monitoring
+    fraud_monitor.log_prediction(input_data, prediction, latency=latency)
+    
+    return {'prediction': prediction.tolist(), 'model_version': 'v2.1.3'}
+        """, language="python")
