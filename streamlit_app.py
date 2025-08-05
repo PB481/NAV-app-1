@@ -1850,8 +1850,7 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
                                             line=dict(width=1, color='black')))
             
             fig_network = go.Figure(data=[edge_trace, workstream_trace, app_trace],
-                                   layout=go.Layout(title='Operational Workstream Network',
-                                                   titlefont_size=16,
+                                   layout=go.Layout(title=dict(text='Operational Workstream Network', font_size=16),
                                                    showlegend=False,
                                                    hovermode='closest',
                                                    margin=dict(b=20,l=5,r=5,t=40),
