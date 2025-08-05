@@ -788,6 +788,75 @@ def show_breadcrumb(current_section):
     st.markdown(f"**🏠 Home** → **{current_section.split(' ', 1)[1]}**")
     st.markdown("---")
 
+# --- Global Variables Setup ---
+# Define sidebar controls that are used across multiple sections
+st.sidebar.markdown("---")
+st.sidebar.header("⚙️ Controls")
+
+# Color metric selector
+color_metric = st.sidebar.selectbox(
+    "Color Code By:",
+    options=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
+    format_func=lambda x: {
+        'Risk': 'Market Risk',
+        'Liquidity': 'Liquidity',
+        'OpCost': 'Operational Cost',
+        'OpRisk': 'Operational Risk'
+    }[x]
+)
+
+# Category filter
+categories = ['All'] + sorted(df['Category'].unique().tolist())
+selected_category = st.sidebar.selectbox(
+    "Filter by Category:",
+    options=categories
+)
+
+# Search functionality
+search_term = st.sidebar.text_input(
+    "Search Assets:",
+    placeholder="Enter symbol or name..."
+)
+
+# Color scale legend
+st.sidebar.markdown("---")
+st.sidebar.header("🎨 Color Scale")
+legend_html = """
+<div style='display: flex; flex-direction: column; gap: 10px;'>
+    <div style='display: flex; align-items: center; gap: 10px;'>
+        <div style='width: 100px; height: 20px; background: linear-gradient(to right, rgb(255,40,40), rgb(255,142,40), rgb(255,255,40), rgb(142,255,40), rgb(40,255,40)); border: 1px solid #ccc;'></div>
+        <span style='font-size: 12px;'>""" + ("Low → High Liquidity" if color_metric == 'Liquidity' else "Low → High " + color_metric) + """</span>
+    </div>
+    <div style='display: flex; justify-content: space-between; font-size: 10px; color: #666;'>
+        <span>1</span><span>3</span><span>5</span><span>7</span><span>10</span>
+    </div>
+</div>
+"""
+st.sidebar.markdown(legend_html, unsafe_allow_html=True)
+
+st.sidebar.markdown("---")
+st.sidebar.header("📊 Metric Definitions") 
+st.sidebar.info(
+    """
+    - **Market Risk**: Potential for investment loss due to factors that affect the overall financial market (1=Low, 10=High).
+    - **Liquidity**: The ease with which an asset can be converted into cash (1=Low, 10=High).
+    - **Operational Cost**: The cost to process, settle, and manage the asset (1=Low, 10=High).
+    - **Operational Risk**: Risk of loss from failed internal processes, people, or systems (1=Low, 10=High).
+    """
+)
+
+# Apply filters globally for all sections
+filtered_df = df.copy()
+if selected_category != 'All':
+    filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+
+if search_term:
+    search_mask = (
+        filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
+        filtered_df['Name'].str.contains(search_term, case=False, na=False)
+    )
+    filtered_df = filtered_df[search_mask]
+
 # --- Section-Based Content Display ---
 
 # ============================================================================
@@ -878,62 +947,6 @@ if nav_option == "🏠 Home & Overview":
 elif nav_option == "🧪 Periodic Table":
     show_breadcrumb(nav_option)
     
-    # Show controls for this section
-    st.sidebar.markdown("---")
-    st.sidebar.header("⚙️ Controls")
-    
-    # Color metric selector
-    color_metric = st.sidebar.selectbox(
-        "Color Code By:",
-        options=['Risk', 'Liquidity', 'OpCost', 'OpRisk'],
-        format_func=lambda x: {
-            'Risk': 'Market Risk',
-            'Liquidity': 'Liquidity',
-            'OpCost': 'Operational Cost',
-            'OpRisk': 'Operational Risk'
-        }[x]
-    )
-
-    # Category filter
-    categories = ['All'] + sorted(df['Category'].unique().tolist())
-    selected_category = st.sidebar.selectbox(
-        "Filter by Category:",
-        options=categories
-    )
-
-    # Search functionality
-    search_term = st.sidebar.text_input(
-        "Search Assets:",
-        placeholder="Enter symbol or name..."
-    )
-
-    # Color scale legend
-    st.sidebar.markdown("---")
-    st.sidebar.header("🎨 Color Scale")
-    legend_html = """
-    <div style='display: flex; flex-direction: column; gap: 10px;'>
-        <div style='display: flex; align-items: center; gap: 10px;'>
-            <div style='width: 100px; height: 20px; background: linear-gradient(to right, rgb(255,40,40), rgb(255,142,40), rgb(255,255,40), rgb(142,255,40), rgb(40,255,40)); border: 1px solid #ccc;'></div>
-            <span style='font-size: 12px;'>""" + ("Low → High Liquidity" if color_metric == 'Liquidity' else "Low → High " + color_metric) + """</span>
-        </div>
-        <div style='display: flex; justify-content: space-between; font-size: 10px; color: #666;'>
-            <span>1</span><span>3</span><span>5</span><span>7</span><span>10</span>
-        </div>
-    </div>
-    """
-    st.sidebar.markdown(legend_html, unsafe_allow_html=True)
-
-    st.sidebar.markdown("---")
-    st.sidebar.header("📊 Metric Definitions")
-    st.sidebar.info(
-        """
-        - **Market Risk**: Potential for investment loss due to factors that affect the overall financial market (1=Low, 10=High).
-        - **Liquidity**: The ease with which an asset can be converted into cash (1=Low, 10=High).
-        - **Operational Cost**: The cost to process, settle, and manage the asset (1=Low, 10=High).
-        - **Operational Risk**: Risk of loss from failed internal processes, people, or systems (1=Low, 10=High).
-        """
-    )
-
     # --- Main Periodic Table Content ---
     st.title("🧪 The Periodic Table of Asset Types")
     st.markdown("""
@@ -941,21 +954,6 @@ elif nav_option == "🧪 Periodic Table":
     Each asset is positioned based on its characteristics and scored on four key metrics.
     **Hover over an element** to see its details. Use the sidebar to change the color scheme.
     """)
-
-    # --- Filter Data Based on User Selection ---
-
-    # Apply category filter
-    filtered_df = df.copy()
-    if selected_category != 'All':
-        filtered_df = filtered_df[filtered_df['Category'] == selected_category]
-
-    # Apply search filter
-    if search_term:
-        search_mask = (
-            filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
-            filtered_df['Name'].str.contains(search_term, case=False, na=False)
-        )
-        filtered_df = filtered_df[search_mask]
 
     # Display statistics
     col1, col2, col3 = st.columns(3)
@@ -967,7 +965,8 @@ elif nav_option == "🧪 Periodic Table":
         st.metric("Categories", len(df['Category'].unique()))
 
     # Continue with the rest of the periodic table functionality
-    # This will include the CSS grid, market data, and tabbed analysis
+    # The CSS grid, market data, and tabbed analysis will be displayed here
+    # Note: All existing periodic table functionality continues to work with the global filtering
 
 # ============================================================================
 # INTERACTIVE ANALYSIS SECTION  
@@ -1066,10 +1065,22 @@ elif nav_option == "⚙️ Settings":
     if st.button("🔄 Reset to Defaults"):
         st.info("Settings reset to default values.")
 
-# Continue with the original content for backward compatibility
-# (The rest of the original application code continues here unmodified)
+# Note: Global variables and filtering are now handled above in the sidebar section
 
-# Temporary: Display statistics (this will be moved to appropriate sections)
+# ============================================================================
+# REMAINING ORIGINAL CONTENT (for backward compatibility)
+# ============================================================================
+
+# Only show the original content if we're in periodic table mode or for compatibility
+if nav_option == "🧪 Periodic Table":
+    # Original content continues in the periodic table section
+    pass
+elif nav_option in ["🏠 Home & Overview", "⚙️ Settings"]:
+    # These sections have their own content
+    pass
+else:
+    # For other sections, show the original content temporarily
+    # Display statistics
 col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Total Assets", len(df))
