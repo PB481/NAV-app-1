@@ -1175,12 +1175,27 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
         
         # NAV statistics
         st.subheader("📊 NAV Statistics")
-        nav_stats = nav_data.groupby('fund_id').agg({
-            'nav_per_share': ['min', 'max', 'mean', 'std'],
-            'total_nav': ['mean'],
-            'shares_outstanding': ['mean']
-        }).round(4)
-        nav_stats.columns = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility', 'Avg Total NAV', 'Avg Shares Outstanding']
+        
+        # Check what columns are available and create appropriate aggregation
+        available_columns = nav_data.columns.tolist()
+        agg_dict = {'nav_per_share': ['min', 'max', 'mean', 'std']}
+        column_names = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility']
+        
+        # Add total_nav if available
+        if 'total_nav' in available_columns:
+            agg_dict['total_nav'] = ['mean']
+            column_names.append('Avg Total NAV')
+        
+        # Add shares outstanding if available (try both variations)
+        if 'total_shares_outstanding' in available_columns:
+            agg_dict['total_shares_outstanding'] = ['mean']
+            column_names.append('Avg Shares Outstanding')
+        elif 'shares_outstanding' in available_columns:
+            agg_dict['shares_outstanding'] = ['mean']
+            column_names.append('Avg Shares Outstanding')
+        
+        nav_stats = nav_data.groupby('fund_id').agg(agg_dict).round(4)
+        nav_stats.columns = column_names
         st.dataframe(nav_stats, use_container_width=True)
         col1, col2 = st.columns(2)
         
@@ -1897,12 +1912,24 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
             
             with col1:
                 st.write("**NAV Performance Metrics**")
-                nav_stats = nav_data.groupby('fund_id').agg({
-                    'nav_per_share': ['min', 'max', 'mean', 'std'],
-                    'total_nav': ['mean'],
-                    'total_shares_outstanding': ['mean']
-                }).round(4)
-                nav_stats.columns = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility', 'Avg Total NAV', 'Avg Shares Outstanding']
+                # Flexible NAV stats calculation
+                available_columns = nav_data.columns.tolist()
+                agg_dict = {'nav_per_share': ['min', 'max', 'mean', 'std']}
+                column_names = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility']
+                
+                if 'total_nav' in available_columns:
+                    agg_dict['total_nav'] = ['mean']
+                    column_names.append('Avg Total NAV')
+                
+                if 'total_shares_outstanding' in available_columns:
+                    agg_dict['total_shares_outstanding'] = ['mean']
+                    column_names.append('Avg Shares Outstanding')
+                elif 'shares_outstanding' in available_columns:
+                    agg_dict['shares_outstanding'] = ['mean']
+                    column_names.append('Avg Shares Outstanding')
+                
+                nav_stats = nav_data.groupby('fund_id').agg(agg_dict).round(4)
+                nav_stats.columns = column_names
                 st.dataframe(nav_stats, use_container_width=True)
             
             with col2:
