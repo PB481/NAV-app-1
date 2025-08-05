@@ -1228,20 +1228,64 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
 
 # End of navigation optimization - rest of the file contains additional operational content
 # that will load naturally below the main navigation tabs
-        st.info("Using Matplotlib/Seaborn visualization")
-        fig, ax = plt.subplots(figsize=(12, 8))
+
+# The remaining sections contain the original operational data analysis
+# which loads when nav_data, fund_characteristics, and custody_holdings are available
+
+if nav_data is not None and fund_characteristics is not None and custody_holdings is not None:
+    st.markdown("---")
+    st.header("🏢 Operational Fund Data Analysis")
+    st.info("Real operational data from fund administration systems including NAV, holdings, and fund characteristics.")
+    
+    op_tab_nav, op_tab_holdings, op_tab_characteristics, op_tab_dashboard, op_tab_workstreams = st.tabs([
+        "📈 NAV Analysis", 
+        "💼 Holdings", 
+        "📋 Characteristics", 
+        "📊 Dashboard", 
+        "🔄 Workstreams"
+    ])
+    
+    with op_tab_nav:
+        st.subheader("📈 NAV Performance Analysis")
         
-        # Create scatter plot
-        scatter = ax.scatter(
-            display_df['Risk'], 
-            display_df['Liquidity'],
-            s=display_df['OpCost'] * 20,  # Size based on OpCost
-            c=display_df[color_metric],
-            cmap='viridis',
-            alpha=0.7,
-            edgecolors='black',
-            linewidth=1
-        )
+        if PLOTLY_AVAILABLE:
+            # NAV time series chart
+            fig_nav = px.line(
+                nav_data,
+                x='nav_date',
+                y='nav_per_share',
+                color='fund_id',
+                title='NAV Performance Over Time',
+                labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share', 'fund_id': 'Fund ID'}
+            )
+            fig_nav.update_layout(height=500)
+            st.plotly_chart(fig_nav, use_container_width=True)
+        else:
+            st.warning("Plotly not available for charts")
+    
+    with op_tab_holdings:
+        st.subheader("💼 Holdings Analysis")
+        if custody_holdings is not None:
+            st.dataframe(custody_holdings.head(), use_container_width=True)
+        else:
+            st.info("Holdings data not available")
+    
+    with op_tab_characteristics:
+        st.subheader("📋 Fund Characteristics")
+        if fund_characteristics is not None:
+            st.dataframe(fund_characteristics.head(), use_container_width=True)
+        else:
+            st.info("Fund characteristics data not available")
+    
+    with op_tab_dashboard:
+        st.subheader("📊 Operational Dashboard")
+        st.info("Dashboard metrics and KPIs will be displayed here")
+    
+    with op_tab_workstreams:
+        st.subheader("🔄 Workstream Analysis")
+        st.info("Workstream analysis and business processes will be displayed here")
+
+# Rest of the operational content continues below...
         
         # Add asset labels
         for _, asset in display_df.iterrows():
