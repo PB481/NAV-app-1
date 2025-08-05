@@ -667,67 +667,16 @@ def calculate_efficient_frontier(portfolio_data, n_portfolios=50):
         return None
 
 
-# --- Enhanced Navigation System ---
+# --- App UI ---
 
-# Initialize session state for navigation
-if 'active_tab' not in st.session_state:
-    st.session_state.active_tab = 0
+st.title("🧪 The Periodic Table of Asset Types")
+st.markdown("""
+This application visualizes different financial asset types in the style of a periodic table. 
+Each asset is positioned based on its characteristics and scored on four key metrics.
+**Hover over an element** to see its details. Use the sidebar to change the color scheme.
+""")
 
-# Main Tabbed Navigation - Fast and Clean
-tab_names = [
-    "🏠 Overview",
-    "🧪 Periodic Table", 
-    "📊 Analysis",
-    "🏦 Financial Data",
-    "🏢 Operations",
-    "🎯 3D Analysis",
-    "📈 Live Data",
-    "🤖 AI Predictors",
-    "⚙️ Settings"
-]
-
-# Create main navigation tabs
-selected_tab = st.tabs(tab_names)
-
-# Map for compatibility with existing code
-nav_option_mapping = {
-    0: "🏠 Home & Overview",
-    1: "🧪 Periodic Table",
-    2: "📊 Interactive Analysis", 
-    3: "🏦 Financial Data",
-    4: "🏢 Operations",
-    5: "🎯 3D Analysis",
-    6: "📈 Live Market Data",
-    7: "🤖 AI Predictors",
-    8: "⚙️ Settings"
-}
-
-# Simplified sidebar with just essential controls
-st.sidebar.title("🧭 Quick Actions")
-
-# Quick navigation buttons (optional)
-if st.sidebar.button("🔄 Refresh Data"):
-    st.rerun()
-
-# Progress indicator (simplified)
-if 'visited_tabs' not in st.session_state:
-    st.session_state.visited_tabs = set()
-
-# Show progress
-progress = len(st.session_state.visited_tabs) / 9
-st.sidebar.progress(progress, text=f"Explored: {len(st.session_state.visited_tabs)}/9 sections")
-
-st.sidebar.markdown("---")
-
-# --- Page Content with Breadcrumbs ---
-def show_breadcrumb(current_section):
-    """Display breadcrumb navigation"""
-    st.markdown(f"**🏠 Home** → **{current_section.split(' ', 1)[1]}**")
-    st.markdown("---")
-
-# --- Global Variables Setup ---
-# Define sidebar controls that are used across multiple sections
-st.sidebar.markdown("---")
+# --- Sidebar Controls ---
 st.sidebar.header("⚙️ Controls")
 
 # Color metric selector
@@ -772,7 +721,7 @@ legend_html = """
 st.sidebar.markdown(legend_html, unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
-st.sidebar.header("📊 Metric Definitions") 
+st.sidebar.header("📊 Metric Definitions")
 st.sidebar.info(
     """
     - **Market Risk**: Potential for investment loss due to factors that affect the overall financial market (1=Low, 10=High).
@@ -782,11 +731,15 @@ st.sidebar.info(
     """
 )
 
-# Apply filters globally for all sections
+
+# --- Filter Data Based on User Selection ---
+
+# Apply category filter
 filtered_df = df.copy()
 if selected_category != 'All':
     filtered_df = filtered_df[filtered_df['Category'] == selected_category]
 
+# Apply search filter
 if search_term:
     search_mask = (
         filtered_df['Symbol'].str.contains(search_term, case=False, na=False) |
@@ -794,409 +747,92 @@ if search_term:
     )
     filtered_df = filtered_df[search_mask]
 
-# --- Section-Based Content Display with Tabs ---
+# Display statistics
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Total Assets", len(df))
+with col2:
+    st.metric("Filtered Assets", len(filtered_df))
+with col3:
+    avg_metric_value = filtered_df[color_metric].mean() if len(filtered_df) > 0 else 0
+    st.metric(f"Avg {color_metric}", f"{avg_metric_value:.1f}")
 
-# ============================================================================
-# TAB-BASED NAVIGATION CONTENT
-# ============================================================================
+# --- Generate the Interactive Periodic Table ---
 
-# HOME & OVERVIEW TAB
-with selected_tab[0]:
-    st.title("🏠 Financial Asset Analysis Dashboard")
-    st.session_state.visited_tabs.add(0)
-    
-    st.markdown("""
-    ### Welcome to the comprehensive financial asset analysis platform!
-    
-    This application provides professional-grade tools for analyzing financial instruments across multiple dimensions. 
-    Navigate through different sections using the sidebar to explore various analytical approaches.
-    """)
-    
-    # Quick overview cards
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Asset Classes", "24", "Complete coverage")
-    with col2:
-        st.metric("Analysis Tools", "8", "Interactive features")
-    with col3:
-        st.metric("Visualization Types", "15+", "Multi-library support")
-    with col4:
-        st.metric("Data Sources", "Real + Synthetic", "Market integrated")
-    
-    st.markdown("---")
-    
-    # Feature highlights
-    st.subheader("🎯 Key Features")
-    
-    feature_col1, feature_col2 = st.columns(2)
-    
-    with feature_col1:
-        st.markdown("""
-        **🧪 Periodic Table View**
-        - Interactive grid layout of all asset types
-        - Color-coded by risk, liquidity, or operational metrics
-        - Hover tooltips with detailed information
-        
-        **📊 Interactive Analysis**
-        - Risk-liquidity matrix with quadrant analysis
-        - Correlation heatmaps and statistical analysis
-        - Multi-dimensional scatter plots and radar charts
-        
-        **🏦 Real Financial Data**
-        - 23 real asset classes with GICS sectors
-        - 10 fund types with regulatory frameworks
-        - Professional risk scoring (1-5 scale)
-        """)
-    
-    with feature_col2:
-        st.markdown("""
-        **🎯 3D Analysis**
-        - Advanced 3D positioning visualization
-        - Hierarchical data exploration
-        - Interactive drill-down capabilities
-        
-        **📈 Live Market Data**
-        - Real-time price integration (prepared)
-        - Performance tracking and alerts
-        - Correlation analysis with market conditions
-        
-        **🤖 AI Predictors**
-        - Machine learning-based predictions
-        - Scenario analysis and modeling
-        - Intelligent recommendations system
-        """)
-    
-    st.markdown("---")
-    
-    # Getting started guide
-    st.subheader("🚀 Getting Started")
-    st.markdown("""
-    1. **Start with the Periodic Table** - Get familiar with asset types and their relationships
-    2. **Explore Interactive Analysis** - Dive deep into correlations and patterns
-    3. **Review Financial Data** - Examine real market data and fund structures  
-    4. **Try 3D Analysis** - Visualize complex multi-dimensional relationships
-    5. **Use AI Predictors** - Get intelligent insights and recommendations
-    
-    Use the tabs above to navigate quickly between sections and enjoy faster performance!
-    """)
+st.subheader("🧪 The Periodic Table of Asset Types")
 
-# PERIODIC TABLE TAB
-with selected_tab[1]:
-    st.title("🧪 The Periodic Table of Asset Types")
-    st.session_state.visited_tabs.add(1)
-    
-    st.markdown("""
-    This application visualizes different financial asset types in the style of a periodic table. 
-    Each asset is positioned based on its characteristics and scored on four key metrics.
-    **Hover over an element** to see its details. Use the sidebar to change the color scheme.
-    """)
+# Add market data display
+market_data = load_market_data()
+if market_data:
+    st.info("💹 **Live Market Data** (Simulated): " + 
+            " | ".join([f"{symbol}: ${data['price']:.2f} ({data['change']:+.1f}%)" 
+                      for symbol, data in list(market_data.items())[:5]]))
 
-    # Display statistics
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Assets", len(df))
-    with col2:
-        st.metric("Filtered Assets", len(filtered_df))  
-    with col3:
-        st.metric("Categories", len(df['Category'].unique()))
-    
-    # Generate and display the periodic table
-    periodic_table_html = create_interactive_periodic_table(
-        filtered_df, 
-        color_metric, 
-        selected_category, 
-        search_term
+# --- Advanced Asset Visualizations ---
+st.subheader("📊 Interactive Asset Analysis Dashboard")
+
+# Apply filters to df
+display_df = df.copy()
+if selected_category != 'All':
+    display_df = display_df[display_df['Category'] == selected_category]
+if search_term:
+    search_mask = (
+        display_df['Symbol'].str.contains(search_term, case=False, na=False) |
+        display_df['Name'].str.contains(search_term, case=False, na=False)
     )
-    
-    if periodic_table_html:
-        st.markdown(periodic_table_html, unsafe_allow_html=True)
-    else:
-        st.error("Could not generate periodic table. Please check your data.")
-    
-    # Market data display
-    market_data = load_market_data()
-    if market_data:
-        st.info("💹 **Live Market Data** (Simulated): " + 
-                " | ".join([f"{symbol}: ${data['price']:.2f} ({data['change']:+.1f}%)" 
-                          for symbol, data in list(market_data.items())[:5]]))
+    display_df = display_df[search_mask]
 
-# INTERACTIVE ANALYSIS TAB
-with selected_tab[2]:
-    st.title("📊 Interactive Asset Analysis Dashboard")
-    st.session_state.visited_tabs.add(2)
-    st.markdown("Access risk-liquidity matrices, heatmaps, interactive charts, and asset positioning tools.")
+# Create multiple visualization tabs
+tab1, tab2, tab3, tab4 = st.tabs(["🔬 Risk-Liquidity Matrix", "🌡️ Heatmaps", "📈 Interactive Charts", "🎯 Asset Positioning"])
+
+with tab1:
+    st.write("### Risk vs Liquidity Analysis")
     
-    # Apply filters to df for analysis
-    display_df = filtered_df.copy()
-    
-    # Create multiple visualization tabs within the analysis section
-    analysis_tab1, analysis_tab2, analysis_tab3, analysis_tab4 = st.tabs([
-        "🔬 Risk-Liquidity Matrix", 
-        "🌡️ Heatmaps", 
-        "📈 Interactive Charts", 
-        "🎯 Asset Positioning"
-    ])
-    
-    with analysis_tab1:
-        st.write("### Risk vs Liquidity Analysis")
+    if PLOTLY_AVAILABLE:
+        # Create bubble chart showing risk vs liquidity
+        fig_bubble = px.scatter(
+            display_df,
+            x='Risk',
+            y='Liquidity', 
+            size='OpCost',
+            color=color_metric,
+            hover_name='Symbol',
+            hover_data={
+                'Name': True,
+                'Category': True,
+                'OpRisk': True,
+                'GridRow': True,
+                'GridCol': True
+            },
+            title=f"Asset Risk-Liquidity Profile (Size=OpCost, Color={color_metric})",
+            labels={
+                'Risk': 'Market Risk Level (1-10)',
+                'Liquidity': 'Liquidity Level (1-10)',
+                'OpCost': 'Operational Cost'
+            },
+            color_continuous_scale='Viridis' if color_metric != 'Liquidity' else 'Viridis_r',
+            size_max=30
+        )
         
-        if PLOTLY_AVAILABLE:
-            # Create bubble chart showing risk vs liquidity
-            fig_bubble = px.scatter(
-                display_df,
-                x='Risk',
-                y='Liquidity', 
-                size='OpCost',
-                color=color_metric,
-                hover_name='Symbol',
-                hover_data={
-                    'Name': True,
-                    'Category': True,
-                    'OpRisk': True,
-                    'GridRow': True,
-                    'GridCol': True
-                },
-                title=f"Asset Risk-Liquidity Profile (Size=OpCost, Color={color_metric})",
-                labels={
-                    'Risk': 'Market Risk Level (1-10)',
-                    'Liquidity': 'Liquidity Level (1-10)',
-                    'OpCost': 'Operational Cost',
-                    color_metric: f'{color_metric} Score'
-                }
-            )
-            
-            fig_bubble.update_layout(height=600)
-            st.plotly_chart(fig_bubble, use_container_width=True)
-        else:
-            st.warning("Plotly not available. Install plotly for interactive charts.")
-    
-    with analysis_tab2:
-        st.write("### Correlation Heatmaps")
-        st.info("🚧 Heatmap analysis coming soon")
-    
-    with analysis_tab3:
-        st.write("### Interactive Charts")
-        st.info("🚧 Additional interactive charts coming soon")
-    
-    with analysis_tab4:
-        st.write("### Asset Positioning")
-        st.info("🚧 Asset positioning analysis coming soon")
-
-# FINANCIAL DATA TAB
-with selected_tab[3]:
-    st.title("🏦 Real Financial Data Analysis")
-    st.session_state.visited_tabs.add(3)
-    st.markdown("Analyze real asset classes, fund types, and combined financial instruments with professional risk scoring.")
-    st.info("🚧 This section contains real financial data analysis with GICS sectors and regulatory frameworks.")
-
-# OPERATIONS TAB
-with selected_tab[4]:
-    st.title("🏢 Operational Fund Data Analysis")
-    st.session_state.visited_tabs.add(4)
-    st.markdown("Explore operational workstreams, business processes, and fund administration networks.")
-    st.info("🚧 This section contains operational analysis, workstream networks, and business process mapping.")
-
-# 3D ANALYSIS TAB
-with selected_tab[5]:
-    st.title("🎯 3D Fund Positioning Analysis")
-    st.session_state.visited_tabs.add(5)
-    st.markdown("Advanced three-dimensional visualization of asset relationships and positioning.")
-    st.info("🚧 This section contains 3D scatter plots, hierarchical analysis, and advanced positioning tools.")
-
-# LIVE MARKET DATA TAB
-with selected_tab[6]:
-    st.title("📈 Real-Time Market Data & Live Analytics")
-    st.session_state.visited_tabs.add(6)
-    st.markdown("Live market data integration, performance tracking, and real-time correlation analysis.")
-    st.info("🚧 This section contains real-time market data feeds, alerts, and live performance tracking.")
-
-# AI PREDICTORS TAB
-with selected_tab[7]:
-    st.title("🤖 AI-Powered Fund Performance Predictor")
-    st.session_state.visited_tabs.add(7)
-    st.markdown("Machine learning models, predictive analytics, and intelligent investment recommendations.")
-    st.info("🚧 This section contains AI models, scenario analysis, and predictive insights for fund performance.")
-
-# SETTINGS TAB
-with selected_tab[8]:
-    st.title("⚙️ Application Settings")
-    st.session_state.visited_tabs.add(8)
-    
-    st.subheader("🎨 Theme & Display")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        theme_color = st.selectbox("Color Theme:", ["Default", "Dark Mode", "High Contrast", "Professional"])
-        chart_style = st.selectbox("Chart Style:", ["Modern", "Classic", "Minimal"])
-    with col2:
-        display_density = st.selectbox("Display Density:", ["Comfortable", "Compact", "Spacious"])
-        animation_speed = st.slider("Animation Speed:", 0.1, 2.0, 1.0)
-    
-    st.subheader("📊 Data Preferences")
-    
-    col3, col4 = st.columns(2)
-    with col3:
-        default_metric = st.selectbox("Default Color Metric:", ["Risk", "Liquidity", "OpCost", "OpRisk"])
-        cache_duration = st.selectbox("Data Cache Duration:", ["1 minute", "5 minutes", "15 minutes", "1 hour"])
-    with col4:
-        auto_refresh = st.checkbox("Auto-refresh data", value=True)
-        show_tooltips = st.checkbox("Show enhanced tooltips", value=True)
-    
-    st.subheader("🔍 Search & Navigation")
-    
-    col5, col6 = st.columns(2)
-    with col5:
-        search_mode = st.selectbox("Search Mode:", ["Live", "On Enter", "Manual"])
-        sidebar_collapsed = st.checkbox("Start with sidebar collapsed", value=False)
-    with col6:
-        breadcrumb_style = st.selectbox("Breadcrumb Style:", ["Full Path", "Current Only", "Hidden"])
-        quick_access_buttons = st.number_input("Quick Access Buttons:", 1, 6, 3, step=1)
-    
-    if st.button("💾 Save Settings"):
-        st.success("Settings saved successfully!")
-    
-    if st.button("🔄 Reset to Defaults"):
-        st.info("Settings reset to default values.")
-
-# Note: Global variables and filtering are now handled above in the sidebar section
-
-# ============================================================================
-# ============================================================================
-# PERFORMANCE NOTES
-# ============================================================================
-#
-# Navigation has been optimized using Streamlit tabs instead of sidebar radio buttons:
-# - No more st.rerun() calls that caused full page refreshes
-# - Faster navigation between sections
-# - Cleaner user interface
-# - All content now contained within respective tabs
-#
-
-# ============================================================================
-# END OF TAB-BASED NAVIGATION CONTENT
-# ============================================================================
-# All content has been moved to the appropriate tabs above.
-# The remaining content below is for the operational/financial data sections
-# that are loaded separately and displayed in their respective tabs.
-# ============================================================================
-
-# This section is handled by the tabs above and real data section below
-# All duplicate content has been removed to prevent errors
-
-# --- Real Financial Data Analysis ---
-if real_assets_df is not None and real_funds_df is not None:
-    st.markdown("---")
-    st.header("🏦 Real Financial Data Analysis")
-    
-    # Create tabs for real data analysis
-    tab_assets, tab_funds, tab_combined = st.tabs(["📊 Asset Classes", "🏛️ Fund Types", "🔗 Combined Analysis"])
-    
-    with tab_assets:
-        st.subheader("Real Asset Classes Analysis")
+        # Add quadrant lines
+        fig_bubble.add_hline(y=5.5, line_dash="dash", line_color="gray", opacity=0.5)
+        fig_bubble.add_vline(x=5.5, line_dash="dash", line_color="gray", opacity=0.5)
         
-        if PLOTLY_AVAILABLE:
-            # Risk vs Liquidity scatter for real assets
-            fig_real_assets = px.scatter(
-                real_assets_df,
-                x='Risk_Score',
-                y='Liquidity_Score',
-                size='Cost_Score',
-                color='GICS_Sector',
-                hover_name='Asset_Class',
-                title="Real Asset Classes: Risk vs Liquidity",
-                labels={'Risk_Score': 'Risk Score (1-5)', 'Liquidity_Score': 'Liquidity Score (1-5)'}
-            )
-            fig_real_assets.update_layout(height=500)
-            st.plotly_chart(fig_real_assets, use_container_width=True)
-        else:
-            st.warning("Plotly not available for interactive charts")
+        # Add quadrant annotations
+        fig_bubble.add_annotation(x=2.5, y=8.5, text="💚 Safe Haven<br>(Low Risk, High Liquidity)", 
+                                 showarrow=False, font=dict(size=10), bgcolor="lightgreen", opacity=0.8)
+        fig_bubble.add_annotation(x=8.5, y=8.5, text="🟡 High Risk Liquid<br>(High Risk, High Liquidity)", 
+                                 showarrow=False, font=dict(size=10), bgcolor="yellow", opacity=0.8)
+        fig_bubble.add_annotation(x=2.5, y=2.5, text="🔵 Conservative Illiquid<br>(Low Risk, Low Liquidity)", 
+                                 showarrow=False, font=dict(size=10), bgcolor="lightblue", opacity=0.8)
+        fig_bubble.add_annotation(x=8.5, y=2.5, text="🔴 High Risk Illiquid<br>(High Risk, Low Liquidity)", 
+                                 showarrow=False, font=dict(size=10), bgcolor="lightcoral", opacity=0.8)
         
-        # Display basic info about real assets  
-        st.dataframe(real_assets_df.head(), use_container_width=True)
-    
-    with tab_funds:
-        st.subheader("Fund Types Analysis")
+        fig_bubble.update_layout(height=600, hovermode='closest')
+        st.plotly_chart(fig_bubble, use_container_width=True)
         
-        if PLOTLY_AVAILABLE:
-            # Fund risk analysis
-            fig_funds = px.scatter(
-                real_funds_df,
-                x='Risk_Score',
-                y='Liquidity_Score',
-                size='Cost_Score',
-                color='Fund_Type',
-                hover_name='Fund_Type',
-                title="Fund Types: Risk vs Liquidity",
-                labels={'Risk_Score': 'Risk Score (1-5)', 'Liquidity_Score': 'Liquidity Score (1-5)'}
-            )
-            fig_funds.update_layout(height=500)
-            st.plotly_chart(fig_funds, use_container_width=True)
-        else:
-            st.warning("Plotly not available for interactive charts")
-        
-        # Display fund data
-        st.dataframe(real_funds_df.head(), use_container_width=True)
-    
-    with tab_combined:
-        st.subheader("Combined Analysis")
-        st.info("Combined analysis of assets and funds will be displayed here.")
-
-# --- Operational Data Analysis ---
-if nav_data is not None and fund_characteristics is not None and custody_holdings is not None:
-    st.markdown("---")
-    st.header("🏢 Operational Fund Data Analysis")
-    
-    # Create operational analysis tabs
-    op_tab_nav, op_tab_holdings, op_tab_characteristics, op_tab_dashboard, op_tab_workstreams = st.tabs([
-        "📈 NAV Analysis", 
-        "💼 Holdings", 
-        "📋 Characteristics", 
-        "📊 Dashboard", 
-        "🔄 Workstreams"
-    ])
-    
-    with op_tab_nav:
-        st.subheader("📈 NAV Performance Analysis")
-        
-        if PLOTLY_AVAILABLE:
-            # NAV time series chart
-            fig_nav_ops = px.line(
-                nav_data,
-                x='nav_date',
-                y='nav_per_share',
-                color='fund_id',
-                title='NAV Performance Over Time',
-                labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share', 'fund_id': 'Fund ID'}
-            )
-            fig_nav_ops.update_layout(height=500)
-            st.plotly_chart(fig_nav_ops, use_container_width=True, key="nav_chart_ops")
-        else:
-            st.warning("Plotly not available for interactive charts")
-        
-        # NAV statistics
-        st.subheader("📊 NAV Statistics")
-        
-        # Check what columns are available and create appropriate aggregation
-        available_columns = nav_data.columns.tolist()
-        agg_dict = {'nav_per_share': ['min', 'max', 'mean', 'std']}
-        column_names = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility']
-        
-        # Add total_nav if available
-        if 'total_nav' in available_columns:
-            agg_dict['total_nav'] = ['mean']
-            column_names.append('Avg Total NAV')
-        
-        # Add shares outstanding if available (try both variations)
-        if 'total_shares_outstanding' in available_columns:
-            agg_dict['total_shares_outstanding'] = ['mean']
-            column_names.append('Avg Shares Outstanding')
-        elif 'shares_outstanding' in available_columns:
-            agg_dict['shares_outstanding'] = ['mean']
-            column_names.append('Avg Shares Outstanding')
-        
-        nav_stats = nav_data.groupby('fund_id').agg(agg_dict).round(4)
-        nav_stats.columns = column_names
-        st.dataframe(nav_stats, use_container_width=True)
+        # Asset positioning insights
+        st.write("#### 🎯 Asset Positioning Insights")
         col1, col2 = st.columns(2)
         
         with col1:
@@ -1225,126 +861,40 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
             st.write(f"• 🔵 Conservative Illiquid: {len(conservative_illiquid)} assets")
             st.write(f"• 🔴 High Risk Illiquid: {len(high_risk_illiquid)} assets")
     
-    with op_tab_holdings:
-        st.subheader("💼 Holdings Analysis")
-        st.info("Holdings analysis will be displayed here")
-    
-    with op_tab_characteristics:
-        st.subheader("📋 Fund Characteristics") 
-        st.info("Fund characteristics analysis will be displayed here")
-    
-    with op_tab_dashboard:
-        st.subheader("📊 Dashboard")
-        st.info("Operational dashboard will be displayed here")
-    
-    with op_tab_workstreams:
-        st.subheader("🔄 Workstreams")
-        st.info("Workstream analysis will be displayed here")
-
-# End of navigation optimization - rest of the file contains additional operational content
-# that will load naturally below the main navigation tabs
-
-# The remaining sections contain the original operational data analysis
-# which loads when nav_data, fund_characteristics, and custody_holdings are available
-
-# Duplicate operational section removed - main operational section already exists above
-
-# The main operational data analysis with tabs is already implemented above in lines 1144-1302
-# All remaining content below is the original operational analysis from the previous version
-
-if nav_data is not None and fund_characteristics is not None and custody_holdings is not None:
-    st.markdown("---")
-    st.header("🏢 Operational Fund Data Analysis")
-    st.info("Real operational data from fund administration systems including NAV, holdings, and fund characteristics.")
-    
-    # Create tabs for operational data analysis
-    op_tab_nav_clean, op_tab_holdings_clean, op_tab_characteristics_clean = st.tabs([
-        "📈 NAV Analysis", 
-        "💼 Holdings", 
-        "📋 Characteristics"
-    ])
-    
-    with op_tab_nav_clean:
-        st.subheader("💼 Holdings Analysis")
-        if custody_holdings is not None:
-            st.dataframe(custody_holdings.head(), use_container_width=True)
-        else:
-            st.info("Holdings data not available")
-    
-    with op_tab_characteristics:
-        st.subheader("📋 Fund Characteristics")
-        if fund_characteristics is not None:
-            st.dataframe(fund_characteristics.head(), use_container_width=True)
-        else:
-            st.info("Fund characteristics data not available")
-    
-    with op_tab_dashboard:
-        st.subheader("📊 Operational Dashboard")
-        st.info("Dashboard metrics and KPIs will be displayed here")
-    
-    with op_tab_workstreams:
-        st.subheader("🔄 Workstream Analysis")
-        st.info("Workstream analysis and business processes will be displayed here")
-
-# The clean operational data analysis section starts below
-
-if nav_data is not None and fund_characteristics is not None and custody_holdings is not None:
-    st.markdown("---")
-    st.header("🏢 Operational Fund Data Analysis")
-    st.info("Real operational data from fund administration systems including NAV, holdings, and fund characteristics.")
-    
-    # Create tabs for operational data analysis
-    op_tab_nav_final, op_tab_holdings_final, op_tab_characteristics_final, op_tab_dashboard_final, op_tab_workstreams_final = st.tabs([
-        "📈 NAV Performance", "📊 Portfolio Holdings", "🏛️ Fund Characteristics", "📋 Operations Dashboard", "🔗 Workstream Network"
-    ])
-    
-    with op_tab_nav_final:
-        st.subheader("NAV Performance Analysis")
+    elif SEABORN_AVAILABLE:
+        st.info("Using Matplotlib/Seaborn visualization")
+        fig, ax = plt.subplots(figsize=(12, 8))
         
-        if PLOTLY_AVAILABLE:
-            # NAV time series analysis
-            st.write("**Daily NAV Performance by Fund**")
-            
-            # Create NAV time series chart
-            fig_nav_final = px.line(
-                nav_data,
-                x='nav_date',
-                y='nav_per_share',
-                color='fund_id',
-                title="Daily NAV Per Share - All Funds",
-                labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share', 'fund_id': 'Fund ID'}
-            )
-            fig_nav_final.update_layout(height=500)
-            st.plotly_chart(fig_nav_final, use_container_width=True, key="nav_chart_final")
-        else:
-            st.warning("Plotly not available for interactive charts")
-    
-    with op_tab_holdings_final:
-        st.subheader("📊 Portfolio Holdings")
-        if custody_holdings is not None:
-            st.dataframe(custody_holdings.head(), use_container_width=True)
-        else:
-            st.info("Holdings data not available")
-    
-    with op_tab_characteristics_final:
-        st.subheader("🏛️ Fund Characteristics")
-        if fund_characteristics is not None:
-            st.dataframe(fund_characteristics.head(), use_container_width=True)
-        else:
-            st.info("Fund characteristics data not available") 
-    
-    with op_tab_dashboard_final:
-        st.subheader("📋 Operations Dashboard")
-        st.info("Operational dashboard content will be displayed here")
-    
-    with op_tab_workstreams_final:
-        st.subheader("🔗 Workstream Network")
-        st.info("Workstream network analysis will be displayed here")
-
-# End of main application content
-
-# Additional operational analysis sections and features continue below
-# These sections contain the original comprehensive operational analysis
+        # Create scatter plot
+        scatter = ax.scatter(
+            display_df['Risk'], 
+            display_df['Liquidity'],
+            s=display_df['OpCost'] * 20,  # Size based on OpCost
+            c=display_df[color_metric],
+            cmap='viridis',
+            alpha=0.7,
+            edgecolors='black',
+            linewidth=1
+        )
+        
+        # Add asset labels
+        for _, asset in display_df.iterrows():
+            ax.annotate(asset['Symbol'], 
+                       (asset['Risk'], asset['Liquidity']),
+                       xytext=(5, 5), textcoords='offset points',
+                       fontsize=8, fontweight='bold')
+        
+        ax.set_xlabel('Market Risk Level (1-10)')
+        ax.set_ylabel('Liquidity Level (1-10)')
+        ax.set_title(f'Asset Risk-Liquidity Profile (Size=OpCost, Color={color_metric})')
+        ax.grid(True, alpha=0.3)
+        
+        # Add quadrant lines
+        ax.axhline(y=5.5, color='gray', linestyle='--', alpha=0.5)
+        ax.axvline(x=5.5, color='gray', linestyle='--', alpha=0.5)
+        
+        plt.colorbar(scatter, label=color_metric)
+        st.pyplot(fig, use_container_width=True)
 
 with tab2:
     st.write("### Asset Metrics Heatmaps")
@@ -1921,7 +1471,7 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
             st.write("**Daily NAV Performance by Fund**")
             
             # Create NAV time series chart
-            fig_nav_main = px.line(
+            fig_nav = px.line(
                 nav_data,
                 x='nav_date',
                 y='nav_per_share',
@@ -1929,32 +1479,20 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
                 title="Daily NAV Per Share - All Funds",
                 labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share', 'fund_id': 'Fund ID'}
             )
-            fig_nav_main.update_layout(height=500)
-            st.plotly_chart(fig_nav_main, use_container_width=True, key="nav_chart_main")
+            fig_nav.update_layout(height=500)
+            st.plotly_chart(fig_nav, use_container_width=True)
             
             # NAV statistics
             col1, col2 = st.columns(2)
             
             with col1:
                 st.write("**NAV Performance Metrics**")
-                # Flexible NAV stats calculation
-                available_columns = nav_data.columns.tolist()
-                agg_dict = {'nav_per_share': ['min', 'max', 'mean', 'std']}
-                column_names = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility']
-                
-                if 'total_nav' in available_columns:
-                    agg_dict['total_nav'] = ['mean']
-                    column_names.append('Avg Total NAV')
-                
-                if 'total_shares_outstanding' in available_columns:
-                    agg_dict['total_shares_outstanding'] = ['mean']
-                    column_names.append('Avg Shares Outstanding')
-                elif 'shares_outstanding' in available_columns:
-                    agg_dict['shares_outstanding'] = ['mean']
-                    column_names.append('Avg Shares Outstanding')
-                
-                nav_stats = nav_data.groupby('fund_id').agg(agg_dict).round(4)
-                nav_stats.columns = column_names
+                nav_stats = nav_data.groupby('fund_id').agg({
+                    'nav_per_share': ['min', 'max', 'mean', 'std'],
+                    'total_nav': ['mean'],
+                    'total_shares_outstanding': ['mean']
+                }).round(4)
+                nav_stats.columns = ['Min NAV', 'Max NAV', 'Avg NAV', 'NAV Volatility', 'Avg Total NAV', 'Avg Shares Outstanding']
                 st.dataframe(nav_stats, use_container_width=True)
             
             with col2:
@@ -2312,7 +1850,8 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
                                             line=dict(width=1, color='black')))
             
             fig_network = go.Figure(data=[edge_trace, workstream_trace, app_trace],
-                                   layout=go.Layout(title=dict(text='Operational Workstream Network', font=dict(size=16)),
+                                   layout=go.Layout(title='Operational Workstream Network',
+                                                   titlefont_size=16,
                                                    showlegend=False,
                                                    hovermode='closest',
                                                    margin=dict(b=20,l=5,r=5,t=40),
