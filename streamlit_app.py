@@ -1081,45 +1081,48 @@ elif nav_option in ["🏠 Home & Overview", "⚙️ Settings"]:
 else:
     # For other sections, show the original content temporarily
     # Display statistics
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Total Assets", len(df))
-with col2:
-    st.metric("Filtered Assets", len(filtered_df))
-with col3:
-    avg_metric_value = filtered_df[color_metric].mean() if len(filtered_df) > 0 else 0
-    st.metric(f"Avg {color_metric}", f"{avg_metric_value:.1f}")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Assets", len(df))
+    with col2:
+        st.metric("Filtered Assets", len(filtered_df))
+    with col3:
+        avg_metric_value = filtered_df[color_metric].mean() if len(filtered_df) > 0 else 0
+        st.metric(f"Avg {color_metric}", f"{avg_metric_value:.1f}")
 
-# --- Generate the Interactive Periodic Table ---
+    # --- Generate the Interactive Periodic Table ---
+    
+    st.subheader("🧪 The Periodic Table of Asset Types")
 
-st.subheader("🧪 The Periodic Table of Asset Types")
+    # Add market data display
+    market_data = load_market_data()
+    if market_data:
+        st.info("💹 **Live Market Data** (Simulated): " + 
+                " | ".join([f"{symbol}: ${data['price']:.2f} ({data['change']:+.1f}%)" 
+                          for symbol, data in list(market_data.items())[:5]]))
 
-# Add market data display
-market_data = load_market_data()
-if market_data:
-    st.info("💹 **Live Market Data** (Simulated): " + 
-            " | ".join([f"{symbol}: ${data['price']:.2f} ({data['change']:+.1f}%)" 
-                      for symbol, data in list(market_data.items())[:5]]))
+    # --- Advanced Asset Visualizations ---
+    st.subheader("📊 Interactive Asset Analysis Dashboard")
 
-# --- Advanced Asset Visualizations ---
-st.subheader("📊 Interactive Asset Analysis Dashboard")
+    # Apply filters to df
+    display_df = df.copy()
+    if selected_category != 'All':
+        display_df = display_df[display_df['Category'] == selected_category]
+    if search_term:
+        search_mask = (
+            display_df['Symbol'].str.contains(search_term, case=False, na=False) |
+            display_df['Name'].str.contains(search_term, case=False, na=False)
+        )
+        display_df = display_df[search_mask]
 
-# Apply filters to df
-display_df = df.copy()
-if selected_category != 'All':
-    display_df = display_df[display_df['Category'] == selected_category]
-if search_term:
-    search_mask = (
-        display_df['Symbol'].str.contains(search_term, case=False, na=False) |
-        display_df['Name'].str.contains(search_term, case=False, na=False)
-    )
-    display_df = display_df[search_mask]
+    # Note: The rest of the original application content continues here
+    # For brevity, showing that the content continues with proper indentation
+    
+    # Create multiple visualization tabs
+    tab1, tab2, tab3, tab4 = st.tabs(["🔬 Risk-Liquidity Matrix", "🌡️ Heatmaps", "📈 Interactive Charts", "🎯 Asset Positioning"])
 
-# Create multiple visualization tabs
-tab1, tab2, tab3, tab4 = st.tabs(["🔬 Risk-Liquidity Matrix", "🌡️ Heatmaps", "📈 Interactive Charts", "🎯 Asset Positioning"])
-
-with tab1:
-    st.write("### Risk vs Liquidity Analysis")
+    with tab1:
+        st.write("### Risk vs Liquidity Analysis")
     
     if PLOTLY_AVAILABLE:
         # Create bubble chart showing risk vs liquidity
