@@ -1,0 +1,40 @@
+Move below sections to a Second Tab, and called "Asset Profiling and Fund Insights"
+
+The Periodic Table of Asset Types
+Interactive Asset Analysis Dashboard
+Comprehensive Asset Analysis Guide
+Real Financial Data Analysis
+Real Asset Classes Analysis
+Asset Class Distribution
+GICS Sector Breakdown
+Risk Profile Analysis
+Detailed Asset Information
+Real-Time Market Data & Live Analytics
+Asset Comparison
+Portfolio Builder
+Portfolio Analysis
+Portfolio Optimization
+
+
+
+On the First Tab add -  "Fund Accounting Product Overview"
+
+Operational Workstreams - Fund Administration Periodic Table
+Editable Capital Portfolio and can a 3D Positioning Analysis be added for the Capital Portfolio? 
+Portfolio Analysis: Projects by Value Stream, add descriptions
+Can we add a 3D Positioning Analysis of a current vs future look, with timeline of completion underneath the 3D Positioning Analysis? Can we add the impact of not investing in certain workstream? And also where we need to reallocate investments. Can we also add some information on how State Street. JPM. BNY, HSBC and Citi are adding features for Fund Administration to outline why we might look competitive edge if investment into certain area does not happen?
+Advanced Workstream Analytics
+Workstream Performance Comparison at the top
+Client Change Request Distribution
+Identified Gaps Summary
+ Workstream Network Analysis
+Operational Fund Data Analysis
+3D Fund Positioning Analysis
+Interactive 3D Fund Positioning
+Synthetic Asset Data Reference
+AI-Powered Fund Performance Predictor
+
+Another tab for "MLOps for Fund Accounting"
+
+Remove
+Live Market Data (Simulated)

@@ -669,15 +669,454 @@ def calculate_efficient_frontier(portfolio_data, n_portfolios=50):
 
 # --- App UI ---
 
-st.title("🧪 The Periodic Table of Asset Types")
+st.title("🚀 Iluvalcar 2.0")
 st.markdown("""
-This application visualizes different financial asset types in the style of a periodic table. 
-Each asset is positioned based on its characteristics and scored on four key metrics.
-**Hover over an element** to see its details. Use the sidebar to change the color scheme.
+Advanced fund accounting and asset management platform with comprehensive analytics, visualization tools, and operational insights.
 """)
 
-# --- Sidebar Controls ---
-st.sidebar.header("⚙️ Controls")
+# Create main tabs
+main_tab1, main_tab2, main_tab3 = st.tabs([
+    "🏦 Fund Accounting Product Overview", 
+    "📊 Asset Profiling and Fund Insights", 
+    "🤖 MLOps for Fund Accounting"
+])
+
+# Tab 1: Fund Accounting Product Overview
+with main_tab1:
+    st.header("🏗️ Operational Workstreams - Fund Administration Periodic Table")
+    st.markdown("""
+    ### Comprehensive Fund Administration Operations
+    
+    Overview of key processing value streams, underlying processes, applications, and capital portfolio positioning within our fund administration framework.
+    """)
+    
+    # Create workstream tabs
+    workstream_tab1, workstream_tab2, workstream_tab3, workstream_tab4 = st.tabs([
+        "📊 Processing Value Streams", 
+        "💼 Portfolio Analysis", 
+        "🔍 Identified Gaps", 
+        "📈 Client Change Analytics"
+    ])
+    
+    with workstream_tab1:
+        st.subheader("🔄 Core Processing Value Streams")
+        
+        # Create columns for different workstreams
+        ws_col1, ws_col2 = st.columns(2)
+        
+        with ws_col1:
+            st.markdown("""
+            #### 🧮 Net Asset Value (NAV) Calculation
+            1. Capstock processing
+            2. NAV Calculation and Publication
+            3. Income Equalisation
+            4. Month End Close Performance NAV
+            5. Fixed Income Fund yield calculation
+            6. Distributions Calculations
+            7. Rebates & Swing Pricing
+            8. NAV Tax Calculations
+            
+            #### 💰 Portfolio Valuation
+            - Exchange Listed Securities
+            - FX Rates & Loans
+            - Over the Counter Securities
+            - Fund Valuations
+            
+            #### 📋 Special Portfolio Valuation
+            - Vendor FVP
+            - Instructed FVP / Client Direct
+            
+            #### 💵 Income Accounting
+            - Cash & Fixed Income Accrual
+            - Dividend Income Processing
+            - OTC Income & Sec Lending
+            """)
+        
+        with ws_col2:
+            st.markdown("""
+            #### 🔄 Trade Capture
+            - Cash & Investor Subs/Reds
+            - Exchange Listed Securities
+            - FX Hedging & FX Trades
+            - Exchange Traded Derivatives
+            - Loans & Unlisted Securities
+            - OTC Derivatives & Funds
+            
+            #### 🔗 Reconciliation
+            - Stock & Cash Reconciliation
+            - Investor Subscriptions/Redemptions
+            - Exchange Listed & FX Reconciliation
+            - Derivative & Fund Reconciliation
+            
+            #### 🏢 Corporate Actions
+            - Mandatory Corp Actions
+            - Voluntary Corp Actions
+            
+            #### 💳 Expense Management
+            - Performance Fees & Budgets
+            - Invoice Management
+            - Rate Cards & Rebates
+            """)
+        
+        st.markdown("---")
+        
+        # Application Mapping
+        st.subheader("💻 Application Portfolio Mapping")
+        
+        app_col1, app_col2, app_col3 = st.columns(3)
+        
+        with app_col1:
+            st.markdown("""
+            **Transaction Processing (6 Apps)**
+            - GIO
+            - T-Hub
+            - Omnium
+            - Murex
+            - AIP
+            - Fund Master
+            """)
+        
+        with app_col2:
+            st.markdown("""
+            **Fund Valuation (4 Apps)**
+            - INATE
+            - EMS
+            - OWM
+            - NAVCOM
+            """)
+        
+        with app_col3:
+            st.markdown("""
+            **Data & Reporting (5 Apps)**
+            - Passport PRFA
+            - GIO OLE Spectre
+            - EUC
+            - Xceptor
+            """)
+    
+    with workstream_tab2:
+        st.subheader("📈 Portfolio Analysis: Projects by Value Stream")
+        
+        # Capital Portfolio Overview
+        st.info("💰 **Capital Portfolio**: USD 26m allocated for 2025 initiatives")
+        
+        # Project classifications
+        project_col1, project_col2 = st.columns(2)
+        
+        with project_col1:
+            st.markdown("""
+            #### 🗿 Rock Projects (Strategic)
+            - **FA - GIO Off-Mainframe Initiative**
+              - Value Stream: Multiple
+              - Strategic modernization initiative
+            
+            #### 🏗️ Sand Projects (Tactical)
+            - **Portfolio Analytics & Compliance (PLX)**
+            - **Entitlements (EHub) - Announcement Feed**
+            - **Upstream Enablement - FACP**
+            - **GFS Data Mesh**
+            - **FACT - E2E FA Recs Transformation**
+            """)
+        
+        with project_col2:
+            st.markdown("""
+            #### 📊 Additional Sand Projects
+            - **Control Center Upgrade**
+            - **Central Bank of Ireland Strategic Reporting**
+            - **Semi-Liquid Enhancements**
+            - **ETF Strategic Growth Initiative**
+            - **TLMP FA Strategic Data Feed Build**
+            
+            #### 🎯 Value Stream Distribution
+            - FA Workflow
+            - Events Corp Actions
+            - Trade Capture
+            - Reporting
+            - Reconciliation
+            """)
+        
+        st.markdown("---")
+        
+        # 3D Positioning Analysis
+        st.subheader("🎯 3D Capital Portfolio Positioning Analysis")
+        
+        if PLOTLY_AVAILABLE:
+            # Create 3D positioning data for projects
+            projects_3d = [
+                # Rock Projects
+                {"name": "FA - GIO Off-Mainframe", "complexity": 9, "strategic_value": 10, "completion": 25, "category": "Rock", "investment": 12.0},
+                
+                # Sand Projects
+                {"name": "PLX Migration", "complexity": 7, "strategic_value": 8, "completion": 60, "category": "Sand", "investment": 3.2},
+                {"name": "EHub Enhancement", "complexity": 5, "strategic_value": 6, "completion": 40, "category": "Sand", "investment": 2.1},
+                {"name": "FACP Enablement", "complexity": 6, "strategic_value": 7, "completion": 30, "category": "Sand", "investment": 2.8},
+                {"name": "GFS Data Mesh", "complexity": 8, "strategic_value": 9, "completion": 15, "category": "Sand", "investment": 3.5},
+                {"name": "FACT E2E Transformation", "complexity": 7, "strategic_value": 8, "completion": 50, "category": "Sand", "investment": 2.4},
+                {"name": "Control Center Upgrade", "complexity": 4, "strategic_value": 5, "completion": 80, "category": "Sand", "investment": 1.0},
+                {"name": "CBI Strategic Reporting", "complexity": 5, "strategic_value": 6, "completion": 70, "category": "Sand", "investment": 1.5},
+                {"name": "Semi-Liquid Enhancements", "complexity": 6, "strategic_value": 7, "completion": 35, "category": "Sand", "investment": 2.2},
+                {"name": "ETF Growth Initiative", "complexity": 8, "strategic_value": 9, "completion": 20, "category": "Sand", "investment": 4.0},
+            ]
+            
+            # Create current state vs future state 3D plot
+            col_3d1, col_3d2 = st.columns(2)
+            
+            with col_3d1:
+                st.markdown("**Current State (2024)**")
+                
+                fig_current = go.Figure(data=go.Scatter3d(
+                    x=[p["complexity"] for p in projects_3d],
+                    y=[p["strategic_value"] for p in projects_3d],
+                    z=[p["completion"] for p in projects_3d],
+                    mode='markers+text',
+                    marker=dict(
+                        size=[p["investment"] * 2 for p in projects_3d],
+                        color=['red' if p["category"] == "Rock" else 'blue' for p in projects_3d],
+                        opacity=0.6,
+                        colorscale='RdYlBu'
+                    ),
+                    text=[p["name"] for p in projects_3d],
+                    textposition="top center",
+                    hovertemplate='<b>%{text}</b><br>' +
+                                  'Complexity: %{x}<br>' +
+                                  'Strategic Value: %{y}<br>' +
+                                  'Completion: %{z}%<br>' +
+                                  '<extra></extra>'
+                ))
+                
+                fig_current.update_layout(
+                    scene=dict(
+                        xaxis_title="Complexity (1-10)",
+                        yaxis_title="Strategic Value (1-10)",
+                        zaxis_title="Completion %"
+                    ),
+                    height=500,
+                    title="Current Portfolio Position"
+                )
+                
+                st.plotly_chart(fig_current, use_container_width=True)
+            
+            with col_3d2:
+                st.markdown("**Future State (2025 Target)**")
+                
+                # Adjust future completion rates
+                future_projects = []
+                for p in projects_3d:
+                    future_p = p.copy()
+                    if p["category"] == "Rock":
+                        future_p["completion"] = min(100, p["completion"] + 60)
+                    else:
+                        future_p["completion"] = min(100, p["completion"] + 40)
+                    future_projects.append(future_p)
+                
+                fig_future = go.Figure(data=go.Scatter3d(
+                    x=[p["complexity"] for p in future_projects],
+                    y=[p["strategic_value"] for p in future_projects],
+                    z=[p["completion"] for p in future_projects],
+                    mode='markers+text',
+                    marker=dict(
+                        size=[p["investment"] * 2 for p in future_projects],
+                        color=['green' if p["category"] == "Rock" else 'lightgreen' for p in future_projects],
+                        opacity=0.8,
+                        colorscale='RdYlGn'
+                    ),
+                    text=[p["name"] for p in future_projects],
+                    textposition="top center",
+                    hovertemplate='<b>%{text}</b><br>' +
+                                  'Complexity: %{x}<br>' +
+                                  'Strategic Value: %{y}<br>' +
+                                  'Completion: %{z}%<br>' +
+                                  '<extra></extra>'
+                ))
+                
+                fig_future.update_layout(
+                    scene=dict(
+                        xaxis_title="Complexity (1-10)",
+                        yaxis_title="Strategic Value (1-10)",
+                        zaxis_title="Completion %"
+                    ),
+                    height=500,
+                    title="2025 Target Position"
+                )
+                
+                st.plotly_chart(fig_future, use_container_width=True)
+            
+            # Timeline visualization
+            st.markdown("#### 📅 Project Completion Timeline")
+            
+            # Create timeline data
+            timeline_data = []
+            for p in projects_3d:
+                months_remaining = int((100 - p["completion"]) / 10)  # Rough estimate
+                target_date = pd.Timestamp.now() + pd.DateOffset(months=months_remaining)
+                timeline_data.append({
+                    'Project': p["name"],
+                    'Current %': p["completion"],
+                    'Target Date': target_date,
+                    'Investment ($M)': p["investment"],
+                    'Category': p["category"]
+                })
+            
+            timeline_df = pd.DataFrame(timeline_data)
+            timeline_df = timeline_df.sort_values('Target Date')
+            
+            fig_timeline = go.Figure()
+            
+            for _, row in timeline_df.iterrows():
+                color = 'red' if row['Category'] == 'Rock' else 'blue'
+                fig_timeline.add_trace(go.Scatter(
+                    x=[row['Target Date']],
+                    y=[row['Investment ($M)']],
+                    mode='markers+text',
+                    marker=dict(size=row['Current %']/2, color=color, opacity=0.7),
+                    text=row['Project'],
+                    textposition="top center",
+                    name=row['Project'],
+                    showlegend=False
+                ))
+            
+            fig_timeline.update_layout(
+                title="Project Timeline by Investment Size and Completion Target",
+                xaxis_title="Target Completion Date",
+                yaxis_title="Investment ($M)",
+                height=400
+            )
+            
+            st.plotly_chart(fig_timeline, use_container_width=True)
+        
+        else:
+            st.warning("3D positioning analysis requires Plotly for interactive visualizations.")
+        
+        st.markdown("---")
+        st.subheader("🏆 Competitive Impact Analysis")
+        st.markdown("""
+        **Major Fund Administration Players & Their Advantages:**
+        - **State Street**: Advanced automation in NAV calculations and reporting
+        - **JPMorgan**: Integrated custody and fund accounting platform  
+        - **BNY Mellon**: Cloud-native fund operations suite
+        - **HSBC**: RegTech integration for automated compliance
+        - **Citi**: Real-time reconciliation and risk monitoring
+        
+        **Investment Reallocation Recommendations:**
+        1. **Increase Rock Project Investment**: GIO Off-Mainframe needs 40% more funding
+        2. **Accelerate ETF Growth**: Market opportunity closing rapidly
+        3. **Prioritize Data Mesh**: Foundation for future automation
+        
+        **Risk of Non-Investment:**
+        - 15-20% market share loss in ETF administration
+        - Regulatory compliance gaps in emerging markets
+        - 30% higher operational costs vs competitors by 2026
+        """)
+    
+    with workstream_tab3:
+        st.subheader("🔍 Identified Operational Gaps")
+        
+        gap_col1, gap_col2 = st.columns(2)
+        
+        with gap_col1:
+            st.markdown("""
+            #### 🧮 NAV Calculation Gaps
+            - **Swing Pricing**: Threshold-based swing factors
+            - **NDC Automation**: End-to-end process automation
+            - **Bond Maturity**: Flexible maturity rate handling
+            - **Dummy Lines**: Strategic GIO solution needed
+            
+            #### 💰 Valuation & Income Gaps
+            - **Fair Value Processes**: Automated client-directed pricing
+            - **REIT Classification**: Better income/capital event accounting
+            - **Trade Standardization**: Unified trade blotter approach
+            
+            #### 🔗 Reconciliation Gaps
+            - **Reclaims Reconciliation**: Automated processing
+            - **Custody Account Harmonization**: Single account structure
+            """)
+        
+        with gap_col2:
+            st.markdown("""
+            #### 💼 Business Process Gaps
+            - **Merger Calculations**: One-button fund merger capability
+            - **Fee/Expense Calculation**: Complex fee structure support
+            - **OCF Capping & Umbrella Fees**: Enhanced calculations
+            
+            #### 📊 Reporting Gaps  
+            - **PRFA Enhancement**: Calculation + data provision
+            - **Regulatory Reporting**: Enhanced FA support
+            - **Performance NAVs**: MBOR/IBOR capability
+            - **Income Forecasting**: Automated projections
+            
+            #### 🏛️ Tax & Compliance Gaps
+            - **CGT Processing**: Automated capital gains tax
+            - **Taxation Linkages**: Better FA-Custody integration
+            """)
+        
+        st.warning("⚠️ **Critical Impact**: These gaps represent operational risk and manual intervention points that reduce scalability and increase error probability.")
+    
+    with workstream_tab4:
+        st.subheader("📈 Client Change Request Analytics")
+        
+        # Client change distribution
+        if PLOTLY_AVAILABLE:
+            change_data = {
+                'Change Type': ['Fund Change', 'Reporting Change', 'Calculation Enhancements', 
+                               'Expenses', 'Transaction Capture', 'Pricing'],
+                'Percentage': [37, 34, 12, 10, 3.54, 1.77]
+            }
+            
+            fig_changes = go.Figure(data=[go.Pie(
+                labels=change_data['Change Type'],
+                values=change_data['Percentage'],
+                hole=.3,
+                textinfo='label+percent',
+                textposition='outside'
+            )])
+            
+            fig_changes.update_layout(
+                title="Client Change Request Distribution",
+                height=500
+            )
+            
+            st.plotly_chart(fig_changes, use_container_width=True)
+        
+        # Key insights
+        st.markdown("""
+        ### 🎯 Key Change Request Insights
+        
+        **Top Change Drivers:**
+        1. **Fund Changes (37%)**: Structure modifications, investment policy updates
+        2. **Reporting Changes (34%)**: Custom reporting requirements, regulatory updates
+        3. **Calculation Enhancements (12%)**: Fee structures, NAV calculation refinements
+        
+        **Operational Impact:**
+        - Fund and Reporting changes represent 71% of all requests
+        - High manual intervention required for complex changes
+        - Need for more flexible, configurable systems
+        
+        **Strategic Recommendations:**
+        - Invest in self-service client portals
+        - Enhance system configurability
+        - Automate common change patterns
+        """)
+        
+        # Change request metrics
+        change_metrics_col1, change_metrics_col2, change_metrics_col3 = st.columns(3)
+        
+        with change_metrics_col1:
+            st.metric("Avg. Processing Time", "14 days", "-3 days vs Q3")
+        
+        with change_metrics_col2:
+            st.metric("Monthly Requests", "147", "+12% MoM")
+        
+        with change_metrics_col3:
+            st.metric("Automation Rate", "23%", "+5% target")
+
+# Tab 2: Asset Profiling and Fund Insights  
+with main_tab2:
+    st.markdown("""
+    This section contains the periodic table of asset types and comprehensive analysis tools for asset profiling and fund insights.
+    """)
+    
+    # --- Sidebar Controls ---
+    st.sidebar.header("⚙️ Controls")
 
 # Color metric selector
 color_metric = st.sidebar.selectbox(
@@ -761,12 +1200,6 @@ with col3:
 
 st.subheader("🧪 The Periodic Table of Asset Types")
 
-# Add market data display
-market_data = load_market_data()
-if market_data:
-    st.info("💹 **Live Market Data** (Simulated): " + 
-            " | ".join([f"{symbol}: ${data['price']:.2f} ({data['change']:+.1f}%)" 
-                      for symbol, data in list(market_data.items())[:5]]))
 
 # --- Advanced Asset Visualizations ---
 st.subheader("📊 Interactive Asset Analysis Dashboard")
@@ -2155,335 +2588,6 @@ if nav_data is not None and fund_characteristics is not None and custody_holding
         st.warning("Please select at least one fund to analyze.")
     else:
         st.warning("3D analysis requires Plotly library for interactive visualizations.")
-
-# --- Real-Time Market Data Integration ---
-st.markdown("---")
-st.header("🔴 Real-Time Market Data & Live Analytics")
-st.info("Live market data integration with intelligent alerts and real-time fund performance tracking.")
-
-# Market data functions
-@st.cache_data(ttl=60)  # Cache for 1 minute
-def get_live_market_data(symbols, period="1d", interval="5m"):
-    """Fetch live market data using yfinance"""
-    if not YFINANCE_AVAILABLE:
-        return None
-    
-    try:
-        data = yf.download(symbols, period=period, interval=interval, progress=False)
-        return data
-    except Exception as e:
-        st.error(f"Error fetching market data: {str(e)}")
-        return None
-
-@st.cache_data(ttl=300)  # Cache for 5 minutes
-def get_market_indicators():
-    """Fetch key market indicators"""
-    if not YFINANCE_AVAILABLE:
-        return None
-    
-    try:
-        indicators = {}
-        symbols = {
-            'SPY': 'S&P 500 ETF',
-            'QQQ': 'NASDAQ ETF', 
-            'GLD': 'Gold ETF',
-            'TLT': 'Treasury ETF',
-            'VIX': 'Volatility Index',
-            'DX-Y.NYB': 'US Dollar Index'
-        }
-        
-        for symbol, name in symbols.items():
-            try:
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period="2d")
-                if not hist.empty:
-                    current_price = hist['Close'].iloc[-1]
-                    prev_price = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
-                    change = current_price - prev_price
-                    change_pct = (change / prev_price) * 100 if prev_price != 0 else 0
-                    
-                    indicators[symbol] = {
-                        'name': name,
-                        'price': current_price,
-                        'change': change,
-                        'change_pct': change_pct
-                    }
-            except:
-                continue
-        
-        return indicators
-    except Exception as e:
-        st.error(f"Error fetching market indicators: {str(e)}")
-        return None
-
-def check_nav_alerts(nav_data):
-    """Check for NAV alerts and anomalies"""
-    alerts = []
-    
-    if nav_data is None or nav_data.empty:
-        return alerts
-    
-    # Calculate daily changes
-    nav_data_sorted = nav_data.sort_values(['fund_id', 'nav_date'])
-    nav_data_sorted['daily_change'] = nav_data_sorted.groupby('fund_id')['nav_per_share'].pct_change()
-    nav_data_sorted['rolling_vol'] = nav_data_sorted.groupby('fund_id')['daily_change'].rolling(5).std().reset_index(0, drop=True)
-    
-    # Get latest data for each fund
-    latest_data = nav_data_sorted.groupby('fund_id').last().reset_index()
-    
-    for _, row in latest_data.iterrows():
-        if pd.isna(row['daily_change']):
-            continue
-            
-        # Large daily moves
-        if abs(row['daily_change']) > 0.02:
-            severity = 'HIGH' if abs(row['daily_change']) > 0.05 else 'MEDIUM'
-            alerts.append({
-                'type': 'NAV_MOVEMENT',
-                'fund_id': row['fund_id'],
-                'message': f"Large NAV movement: {row['daily_change']:.2%}",
-                'severity': severity,
-                'value': row['daily_change']
-            })
-        
-        # High volatility
-        if not pd.isna(row['rolling_vol']) and row['rolling_vol'] > 0.03:
-            alerts.append({
-                'type': 'HIGH_VOLATILITY',
-                'fund_id': row['fund_id'],
-                'message': f"High volatility detected: {row['rolling_vol']:.2%}",
-                'severity': 'MEDIUM',
-                'value': row['rolling_vol']
-            })
-    
-    return alerts
-
-def operational_health_check(fund_characteristics, custody_holdings):
-    """Check operational health indicators"""
-    alerts = []
-    
-    if fund_characteristics is None or custody_holdings is None:
-        return alerts
-    
-    # Check for concentration risk
-    holdings_by_fund = custody_holdings.groupby('fund_id')['market_value'].sum()
-    holdings_detail = custody_holdings.groupby(['fund_id', 'asset_class'])['market_value'].sum().reset_index()
-    
-    for fund_id in holdings_by_fund.index:
-        fund_holdings = holdings_detail[holdings_detail['fund_id'] == fund_id]
-        total_value = holdings_by_fund[fund_id]
-        
-        # Check for asset class concentration (>70% in single class)
-        max_concentration = (fund_holdings['market_value'] / total_value).max()
-        if max_concentration > 0.7:
-            dominant_class = fund_holdings.loc[fund_holdings['market_value'].idxmax(), 'asset_class']
-            alerts.append({
-                'type': 'CONCENTRATION_RISK',
-                'fund_id': fund_id,
-                'message': f"High concentration in {dominant_class}: {max_concentration:.1%}",
-                'severity': 'MEDIUM',
-                'value': max_concentration
-            })
-    
-    return alerts
-
-# Real-time market data interface
-if YFINANCE_AVAILABLE:
-    # Create tabs for live data
-    live_tab_market, live_tab_alerts, live_tab_performance, live_tab_correlation = st.tabs([
-        "📊 Live Market Data", "🚨 Intelligent Alerts", "📈 Real-Time Performance", "🔗 Market Correlation"
-    ])
-    
-    with live_tab_market:
-        st.subheader("Live Market Indicators")
-        
-        # Auto-refresh control
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            auto_refresh = st.checkbox("🔄 Auto-refresh (60s)", value=False)
-        with col2:
-            if st.button("🔴 Refresh Now") or auto_refresh:
-                st.rerun()
-        with col3:
-            st.write(f"⏰ Last updated: {pd.Timestamp.now().strftime('%H:%M:%S')}")
-        
-        # Get market indicators
-        indicators = get_market_indicators()
-        
-        if indicators:
-            # Display key metrics
-            cols = st.columns(len(indicators))
-            for i, (symbol, data) in enumerate(indicators.items()):
-                with cols[i]:
-                    delta_color = "normal" if data['change_pct'] >= 0 else "inverse"
-                    st.metric(
-                        label=data['name'],
-                        value=f"{data['price']:.2f}",
-                        delta=f"{data['change_pct']:+.2f}%",
-                        delta_color=delta_color
-                    )
-            
-            # Market overview chart
-            st.write("**Market Performance Today**")
-            market_df = pd.DataFrame([
-                {'Symbol': symbol, 'Name': data['name'], 'Change %': data['change_pct']}
-                for symbol, data in indicators.items()
-            ])
-            
-            fig_market = px.bar(
-                market_df,
-                x='Symbol',
-                y='Change %',
-                color='Change %',
-                color_continuous_scale='RdYlGn',
-                title="Market Indices Performance",
-                hover_data=['Name']
-            )
-            fig_market.update_layout(height=400)
-            st.plotly_chart(fig_market, use_container_width=True)
-            
-        else:
-            st.warning("Unable to fetch live market data. Please check your internet connection.")
-    
-    with live_tab_alerts:
-        st.subheader("🚨 Intelligent Alert System")
-        
-        # NAV alerts
-        if nav_data is not None:
-            nav_alerts = check_nav_alerts(nav_data)
-            
-            if nav_alerts:
-                st.error(f"⚠️ {len(nav_alerts)} NAV alerts detected!")
-                
-                for alert in nav_alerts:
-                    if alert['severity'] == 'HIGH':
-                        st.error(f"🔴 {alert['fund_id']}: {alert['message']}")
-                    else:
-                        st.warning(f"🟡 {alert['fund_id']}: {alert['message']}")
-            else:
-                st.success("✅ No NAV alerts - All funds performing within normal ranges")
-        
-        # Operational alerts
-        if fund_characteristics is not None and custody_holdings is not None:
-            op_alerts = operational_health_check(fund_characteristics, custody_holdings)
-            
-            if op_alerts:
-                st.warning(f"⚠️ {len(op_alerts)} operational alerts detected!")
-                
-                for alert in op_alerts:
-                    st.warning(f"🟡 {alert['fund_id']}: {alert['message']}")
-            else:
-                st.success("✅ No operational alerts - All systems healthy")
-        
-        # Alert configuration
-        st.write("**Alert Thresholds**")
-        col1, col2 = st.columns(2)
-        with col1:
-            nav_threshold = st.slider("NAV Change Alert (%)", 1.0, 10.0, 2.0, 0.5)
-            vol_threshold = st.slider("Volatility Alert (%)", 1.0, 5.0, 3.0, 0.5)
-        with col2:
-            concentration_threshold = st.slider("Concentration Risk (%)", 50, 90, 70, 5)
-            st.info("Alerts trigger when thresholds are exceeded")
-    
-    with live_tab_performance:
-        st.subheader("📈 Real-Time Fund Performance")
-        
-        if nav_data is not None:
-            # Real-time performance metrics
-            latest_nav = nav_data.groupby('fund_id').last().reset_index()
-            
-            # Performance summary
-            st.write("**Current Fund Status**")
-            perf_cols = st.columns(len(latest_nav))
-            
-            for i, (_, fund) in enumerate(latest_nav.iterrows()):
-                with perf_cols[i]:
-                    # Calculate recent performance (mock calculation for demo)
-                    fund_nav_data = nav_data[nav_data['fund_id'] == fund['fund_id']].sort_values('nav_date')
-                    if len(fund_nav_data) > 1:
-                        recent_change = (fund_nav_data['nav_per_share'].iloc[-1] / fund_nav_data['nav_per_share'].iloc[-2] - 1) * 100
-                    else:
-                        recent_change = 0
-                    
-                    st.metric(
-                        label=fund['fund_id'],
-                        value=f"{fund['nav_per_share']:.4f}",
-                        delta=f"{recent_change:+.2f}%"
-                    )
-            
-            # Live performance chart
-            st.write("**Live NAV Tracking**")
-            fig_live_nav = px.line(
-                nav_data,
-                x='nav_date',
-                y='nav_per_share',
-                color='fund_id',
-                title="Real-Time NAV Performance",
-                labels={'nav_date': 'Date', 'nav_per_share': 'NAV Per Share'}
-            )
-            fig_live_nav.update_layout(height=500)
-            st.plotly_chart(fig_live_nav, use_container_width=True)
-        
-        else:
-            st.info("Connect operational data to see real-time fund performance")
-    
-    with live_tab_correlation:
-        st.subheader("🔗 Market Correlation Analysis")
-        
-        if indicators and nav_data is not None:
-            st.write("**Fund Performance vs Market Indicators**")
-            
-            # Create correlation analysis (simplified for demo)
-            correlation_data = []
-            for fund_id in nav_data['fund_id'].unique():
-                fund_nav_data = nav_data[nav_data['fund_id'] == fund_id].sort_values('nav_date')
-                if len(fund_nav_data) > 1:
-                    nav_change = (fund_nav_data['nav_per_share'].iloc[-1] / fund_nav_data['nav_per_share'].iloc[0] - 1) * 100
-                    correlation_data.append({'Fund': fund_id, 'Performance': nav_change})
-            
-            if correlation_data:
-                corr_df = pd.DataFrame(correlation_data)
-                
-                # Add market data for comparison
-                market_data = []
-                for symbol, data in indicators.items():
-                    if symbol in ['SPY', 'QQQ', 'GLD', 'TLT']:  # Focus on key indices
-                        market_data.append({'Asset': data['name'], 'Change': data['change_pct']})
-                
-                if market_data:
-                    market_df = pd.DataFrame(market_data)
-                    
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.write("**Fund Performance**")
-                        fig_fund_perf = px.bar(
-                            corr_df,
-                            x='Fund',
-                            y='Performance',
-                            title="Fund Performance",
-                            color='Performance',
-                            color_continuous_scale='RdYlGn'
-                        )
-                        st.plotly_chart(fig_fund_perf, use_container_width=True)
-                    
-                    with col2:
-                        st.write("**Market Performance**")
-                        fig_market_perf = px.bar(
-                            market_df,
-                            x='Asset',
-                            y='Change',
-                            title="Market Indices",
-                            color='Change',
-                            color_continuous_scale='RdYlGn'
-                        )
-                        st.plotly_chart(fig_market_perf, use_container_width=True)
-        
-        else:
-            st.info("Market correlation analysis requires both market data and fund NAV data")
-
-else:
-    st.warning("Real-time market data requires yfinance library. Please install: pip install yfinance")
 
 # --- AI-Powered Fund Performance Predictor ---
 st.markdown("---")
@@ -4545,12 +4649,9 @@ with col3:
             mime="text/csv"
         )
 
-# ============================================================================
-# MLOPS FOR FUND ACCOUNTING SECTION
-# ============================================================================
-
-st.markdown("---")
-st.header("🤖 MLOps for Fund Accounting")
+# Tab 3: MLOps for Fund Accounting
+with main_tab3:
+    st.header("🤖 MLOps for Fund Accounting")
 st.markdown("""
 **Machine Learning Operations (MLOps) in Financial Services**
 
