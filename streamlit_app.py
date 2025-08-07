@@ -806,34 +806,90 @@ with main_tab1:
         with project_col1:
             st.markdown("""
             #### 🗿 Rock Projects (Strategic)
-            - **FA - GIO Off-Mainframe Initiative**
-              - Value Stream: Multiple
-              - Strategic modernization initiative
+            **FA - GIO Off-Mainframe Initiative**
+            - **Value Stream**: Multiple
+            - **Description**: Strategic modernization to migrate critical fund accounting processes from legacy mainframe systems to modern cloud-native architecture. Includes data migration, process reengineering, and system integration across multiple value streams.
+            - **Impact**: Foundation for future automation and scalability improvements
+            - **Investment**: $12M over 18 months
             
             #### 🏗️ Sand Projects (Tactical)
-            - **Portfolio Analytics & Compliance (PLX)**
-            - **Entitlements (EHub) - Announcement Feed**
-            - **Upstream Enablement - FACP**
-            - **GFS Data Mesh**
-            - **FACT - E2E FA Recs Transformation**
+            
+            **Portfolio Analytics & Compliance (PLX) - Migration of MIG21**
+            - **Value Stream**: FA Workflow
+            - **Description**: Migration of legacy MIG21 system to modern Portfolio Analytics and Compliance platform, enhancing real-time portfolio monitoring and automated compliance reporting.
+            - **Investment**: $3.2M
+            
+            **Entitlements (EHub) - Announcement Feed**
+            - **Value Stream**: Events Corp Actions
+            - **Description**: Enhancement of corporate actions processing through automated announcement feed integration, reducing manual intervention and improving accuracy of entitlement calculations.
+            - **Investment**: $2.1M
+            
+            **Upstream Enablement - FACP**
+            - **Value Stream**: Trade Capture
+            - **Description**: Fund Accounting Connectivity Platform enabling seamless upstream data integration from multiple trading platforms and improving straight-through processing rates.
+            - **Investment**: $2.8M
+            """)
+        
+        with project_col2:
+            st.markdown("""
+            **GFS Data Mesh**
+            - **Value Stream**: Reporting
+            - **Description**: Implementation of distributed data architecture enabling self-serve analytics, improved data quality, and faster time-to-insight for regulatory and client reporting.
+            - **Investment**: $3.5M
+            
+            **FACT - E2E FA Recs Transformation**
+            - **Value Stream**: Reconciliation
+            - **Description**: End-to-end fund accounting reconciliation transformation project automating break identification, resolution workflows, and exception management across all asset classes.
+            - **Investment**: $2.4M
             """)
         
         with project_col2:
             st.markdown("""
             #### 📊 Additional Sand Projects
-            - **Control Center Upgrade**
-            - **Central Bank of Ireland Strategic Reporting**
-            - **Semi-Liquid Enhancements**
-            - **ETF Strategic Growth Initiative**
-            - **TLMP FA Strategic Data Feed Build**
             
-            #### 🎯 Value Stream Distribution
-            - FA Workflow
-            - Events Corp Actions
-            - Trade Capture
-            - Reporting
-            - Reconciliation
+            **Control Center Upgrade**
+            - **Value Stream**: FA Workflow
+            - **Description**: Modernization of operational control center with real-time dashboards, automated alerting, and enhanced workflow management capabilities for fund administration operations.
+            - **Investment**: $1.0M
+            
+            **Central Bank of Ireland Strategic Reporting**
+            - **Value Stream**: Reporting
+            - **Description**: Implementation of automated regulatory reporting framework specifically for CBI requirements, including UCITS and AIFMD reporting with real-time validation and submission capabilities.
+            - **Investment**: $1.5M
+            
+            **Semi-Liquid Enhancements**
+            - **Value Stream**: New Product
+            - **Description**: Development of specialized processing capabilities for semi-liquid fund strategies, including enhanced liquidity management, redemption queue processing, and fair value determinations.
+            - **Investment**: $2.2M
+            
+            **ETF Strategic Growth Initiative**
+            - **Value Stream**: ETF Growth
+            - **Description**: Comprehensive platform enhancement to support ETF administration growth, including real-time NAV calculation, authorized participant management, and creation/redemption processing automation.
+            - **Investment**: $4.0M
+            
+            **TLMP FA Strategic Data Feed Build**
+            - **Value Stream**: Reconciliation
+            - **Description**: Development of strategic data feeds between Trade Lifecycle Management Platform and Fund Accounting systems, improving data consistency and reducing reconciliation breaks.
+            - **Investment**: $1.8M
             """)
+        
+        # Project summary metrics
+        st.markdown("---")
+        st.subheader("📊 Portfolio Investment Summary")
+        
+        summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+        
+        with summary_col1:
+            st.metric("Total Investment", "$26.0M", "2025 allocation")
+        
+        with summary_col2:
+            st.metric("Rock Projects", "1 project", "$12.0M (46%)")
+        
+        with summary_col3:
+            st.metric("Sand Projects", "9 projects", "$14.0M (54%)")
+        
+        with summary_col4:
+            st.metric("Value Streams", "8 streams", "Multi-stream impact")
         
         st.markdown("---")
         
